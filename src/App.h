@@ -6,6 +6,7 @@
 #include "Renderer.h"
 #include <string>
 #include <memory>
+#include <vector>
 
 struct GLFWwindow;
 
@@ -35,6 +36,10 @@ private:
 
     // Settings
     bool showBones_ = false;
+
+    // Model list for M-key switching
+    std::vector<std::string> modelPaths_;
+    int                      modelIndex_ = 0;
 
     void loadModel(const std::string& path);
     void processInput(float dt);

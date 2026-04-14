@@ -85,7 +85,11 @@ void App::loadModel(const std::string& path) {
 // ── Main loop ─────────────────────────────────────────────────────────────────
 
 void App::run() {
-    loadModel("assets/CesiumMan/CesiumMan.gltf");
+    modelPaths_ = {
+        "assets/CesiumMan/CesiumMan.gltf",
+        "assets/RiggedFigure/RiggedFigure.gltf"
+    };
+    loadModel(modelPaths_[modelIndex_]);
 
     double prevTime = glfwGetTime();
     int    frames   = 0;
@@ -196,12 +200,8 @@ void App::cbScroll(GLFWwindow* w, double, double dy) {
     app->camera_.onScroll(dy);
 }
 
-void App::cbKey(GLFWwindow* w, int key, int scancode, int action, int mods) {
+void App::cbKey(GLFWwindow* w, int key, int /*scancode*/, int action, int /*mods*/) {
     auto* app = (App*)glfwGetWindowUserPointer(w);
-    // Debug: print every key event so we can see what GLFW receives
-    if (action == GLFW_PRESS)
-        std::cout << "[Key] key=" << key << " scancode=" << scancode
-                  << " mods=" << mods << "\n";
     if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
     if (!app->animator_) return;
 
@@ -244,8 +244,13 @@ void App::cbKey(GLFWwindow* w, int key, int scancode, int action, int mods) {
             break;
         case GLFW_KEY_B:
             app->showBones_ = !app->showBones_;
-            std::cout << "[Bones] overlay " << (app->showBones_ ? "ON" : "OFF") << "\n";
             break;
+        case GLFW_KEY_M: {
+            // Cycle through available models
+            app->modelIndex_ = (app->modelIndex_ + 1) % (int)app->modelPaths_.size();
+            app->loadModel(app->modelPaths_[app->modelIndex_]);
+            break;
+        }
         case GLFW_KEY_0:
             // Week 2 diagnostic: freeze to bind pose (t=0) + print validation
             app->animator_->freezeBindPose();

@@ -26,9 +26,12 @@ void Animator::setClip(int idx) {
 
 void Animator::update(float dt) {
     if (playing_ && !model_->animations.empty()) {
-        float dur = model_->animations[clipIdx_].duration;
-        time_ += dt * speed_;
-        if (dur > 0.0f) time_ = std::fmod(time_, dur);
+        const float dur = model_->animations[clipIdx_].duration;
+        // Edge case: static clip (no keyframes / zero duration) — just hold t=0
+        if (dur > 1e-5f) {
+            time_ += dt * speed_;
+            time_  = std::fmod(time_, dur);
+        }
     }
     computeLocal();
     computeGlobal();
@@ -44,8 +47,6 @@ float Animator::clipDuration() const {
 void Animator::stepTime(float delta) {
     playing_ = false;
     float dur = clipDuration();
-    std::cout << "[Scrub] t=" << std::fixed << std::setprecision(3) << time_
-              << " -> " << (time_ + delta) << "s\n";
     if (dur > 0.0f) {
         time_ = std::fmod(time_ + delta + dur, dur); // + dur prevents negative fmod
     }
