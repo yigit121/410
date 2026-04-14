@@ -19,6 +19,10 @@ struct Bone {
     glm::mat4 localBind;    // rest-pose local transform
     glm::mat4 invBind;      // inverse bind-pose world transform
     std::string name;
+    // Bind-pose TRS components — used for TRS-level animation blending
+    glm::vec3 bindT{0.0f, 0.0f, 0.0f};
+    glm::quat bindR{1.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec3 bindS{1.0f, 1.0f, 1.0f};
 };
 
 // ── Animation keyframe channel for one bone ───────────────────────────────────

@@ -9,6 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <stdexcept>
 #include <iostream>
 #include <unordered_map>
@@ -119,6 +120,29 @@ Model GltfLoader::load(const std::string& path) {
             model.skeleton[j].invBind   = ibms[j];
             model.skeleton[j].localBind = nodeLocalTransform(node);
             model.skeleton[j].parent    = -1;
+
+            // Store bind-pose TRS for animation blending
+            {
+                glm::vec3 bT(0.0f), bS(1.0f);
+                glm::quat bR(1.0f, 0.0f, 0.0f, 0.0f);
+                if (!node.matrix.empty()) {
+                    // Decompose the pre-built mat4
+                    glm::vec3 skew; glm::vec4 persp;
+                    glm::decompose(model.skeleton[j].localBind, bS, bR, bT, skew, persp);
+                    bR = glm::conjugate(bR); // GLM decompose returns conjugate rotation
+                } else {
+                    if (node.translation.size() == 3)
+                        bT = { (float)node.translation[0], (float)node.translation[1], (float)node.translation[2] };
+                    if (node.rotation.size() == 4)
+                        bR = glm::quat((float)node.rotation[3], (float)node.rotation[0],
+                                       (float)node.rotation[1], (float)node.rotation[2]);
+                    if (node.scale.size() == 3)
+                        bS = { (float)node.scale[0], (float)node.scale[1], (float)node.scale[2] };
+                }
+                model.skeleton[j].bindT = bT;
+                model.skeleton[j].bindR = bR;
+                model.skeleton[j].bindS = bS;
+            }
 
             // Find parent: scan other joints to find who has nodeIdx as a child
             for (int k = 0; k < nBones; k++) {

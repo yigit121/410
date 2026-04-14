@@ -34,11 +34,11 @@ App::App(int width, int height, const char* title)
     glfwSetWindowUserPointer(window_, this);
     glfwSwapInterval(1); // vsync
 
-    // Register callbacks
+    // Register GLFW callbacks (ImGui will chain these when ui_.init() is called)
     glfwSetCursorPosCallback      (window_, cbCursorPos);
     glfwSetScrollCallback         (window_, cbScroll);
     glfwSetKeyCallback            (window_, cbKey);
-    glfwSetCharCallback           (window_, cbChar);   // for '+'/'-' regardless of layout
+    glfwSetCharCallback           (window_, cbChar);
     glfwSetMouseButtonCallback    (window_, cbMouseButton);
     glfwSetFramebufferSizeCallback(window_, cbFramebuffer);
 
@@ -50,9 +50,13 @@ App::App(int width, int height, const char* title)
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+
+    // Init Dear ImGui (must happen after glad + before any GL draw calls)
+    ui_.init(window_);
 }
 
 App::~App() {
+    ui_.shutdown();
     glfwDestroyWindow(window_);
     glfwTerminate();
 }
@@ -67,16 +71,13 @@ void App::loadModel(const std::string& path) {
 
     animator_ = std::make_unique<Animator>(&model_);
 
-    // Week 2 validation: run at load time so output appears in terminal
     animator_->validateBindPose();
     animator_->printClipDiagnostic();
 
-    // Compile shaders
     skinnedShader_   = std::make_unique<Shader>("shaders/skinned.vert",    "shaders/skinned.frag");
     boneDebugShader_ = std::make_unique<Shader>("shaders/bone_debug.vert", "shaders/bone_debug.frag");
     gridShader_      = std::make_unique<Shader>("shaders/grid.vert",       "shaders/grid.frag");
 
-    // Bind UBO to shader's named block
     unsigned int blockIdx = glGetUniformBlockIndex(skinnedShader_->id, "BoneMatrices");
     if (blockIdx != GL_INVALID_INDEX)
         glUniformBlockBinding(skinnedShader_->id, blockIdx, 0);
@@ -94,7 +95,6 @@ void App::run() {
     double prevTime = glfwGetTime();
     int    frames   = 0;
     double fpsTimer = 0.0;
-    int    cachedFps = 0;
 
     while (!glfwWindowShouldClose(window_)) {
         double now = glfwGetTime();
@@ -105,14 +105,14 @@ void App::run() {
         frames++;
         fpsTimer += dt;
         if (fpsTimer >= 1.0) {
-            cachedFps = frames;
+            cachedFps_ = frames;
             frames = 0; fpsTimer = 0.0;
         }
 
-        // Title bar — updated every frame so t: reflects scrubbing immediately
+        // Title bar
         {
             std::ostringstream title;
-            title << "Skeletal Viewer | FPS: " << cachedFps;
+            title << "Skeletal Viewer | FPS: " << cachedFps_;
             if (animator_) {
                 title << " | Speed: " << std::fixed << std::setprecision(2)
                       << animator_->speed() << "x";
@@ -121,6 +121,8 @@ void App::run() {
                 if (animator_->clipDuration() > 0.0f)
                     title << "/" << std::setprecision(2) << animator_->clipDuration() << "s";
                 title << " | " << (animator_->isPlaying() ? "Playing" : "Paused");
+                if (animator_->isBlending())
+                    title << " | Blending " << (int)(animator_->blendAlpha() * 100) << "%";
             }
             glfwSetWindowTitle(window_, title.str().c_str());
         }
@@ -131,7 +133,22 @@ void App::run() {
         if (renderer_ && animator_)
             renderer_->uploadSkinningMatrices(animator_->skinningMatrices());
 
-        render();
+        // Check if the ImGui panel requested a model switch
+        ui_.beginFrame();
+        {
+            int prevModelIndex = modelIndex_;
+            bool panelChanged = ui_.draw(
+                *animator_, showBones_,
+                modelIndex_, modelPaths_,
+                cachedFps_,
+                renderer_ ? renderer_->totalTriangles() : 0
+            );
+            if (panelChanged && modelIndex_ != prevModelIndex)
+                loadModel(modelPaths_[modelIndex_]);
+        }
+
+        render(); // render scene first, then ImGui on top
+        ui_.endFrame();
 
         glfwSwapBuffers(window_);
         glfwPollEvents();
@@ -168,7 +185,7 @@ void App::render() {
 
     if (showBones_ && renderer_ && boneDebugShader_ && animator_) {
         boneDebugShader_->use();
-        boneDebugShader_->setMat4("uModel",      model);   // same rootTransform as mesh
+        boneDebugShader_->setMat4("uModel",      model);
         boneDebugShader_->setMat4("uView",       view);
         boneDebugShader_->setMat4("uProjection", proj);
         renderer_->drawBones(*boneDebugShader_,
@@ -188,20 +205,23 @@ void App::processInput(float /*dt*/) {
 
 void App::cbCursorPos(GLFWwindow* w, double x, double y) {
     auto* app = (App*)glfwGetWindowUserPointer(w);
+    if (app->ui_.wantsMouse()) return; // ImGui has focus
     if (app->firstMouse_) { app->lastX_ = x; app->lastY_ = y; app->firstMouse_ = false; }
     double dx = x - app->lastX_;
-    double dy = app->lastY_ - y; // inverted for natural orbit
+    double dy = app->lastY_ - y;
     app->lastX_ = x; app->lastY_ = y;
     app->camera_.onMouseMove(dx, dy, app->lmbDown_, app->rmbDown_);
 }
 
 void App::cbScroll(GLFWwindow* w, double, double dy) {
     auto* app = (App*)glfwGetWindowUserPointer(w);
+    if (app->ui_.wantsMouse()) return;
     app->camera_.onScroll(dy);
 }
 
 void App::cbKey(GLFWwindow* w, int key, int /*scancode*/, int action, int /*mods*/) {
     auto* app = (App*)glfwGetWindowUserPointer(w);
+    if (app->ui_.wantsKeyboard()) return; // ImGui text field has focus
     if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
     if (!app->animator_) return;
 
@@ -212,6 +232,7 @@ void App::cbKey(GLFWwindow* w, int key, int /*scancode*/, int action, int /*mods
         case GLFW_KEY_R:
             app->animator_->resetTime();
             break;
+        // Instant clip switch
         case GLFW_KEY_RIGHT_BRACKET: {
             int next = (app->animator_->clipIndex() + 1) % std::max(1, app->animator_->clipCount());
             app->animator_->setClip(next);
@@ -223,17 +244,22 @@ void App::cbKey(GLFWwindow* w, int key, int /*scancode*/, int action, int /*mods
             app->animator_->setClip(std::max(0, prev));
             break;
         }
-        case GLFW_KEY_UP:          // arrow up   → faster
-        case GLFW_KEY_KP_ADD:      // numpad '+'
+        // Smooth blend to next clip (N key)
+        case GLFW_KEY_N: {
+            int next = (app->animator_->clipIndex() + 1) % std::max(1, app->animator_->clipCount());
+            app->animator_->blendTo(next, 0.4f);
+            break;
+        }
+        case GLFW_KEY_UP:
+        case GLFW_KEY_KP_ADD:
             app->animator_->setSpeed(
                 std::clamp(app->animator_->speed() * 1.25f, 0.05f, 8.0f));
             break;
-        case GLFW_KEY_DOWN:        // arrow down → slower
-        case GLFW_KEY_KP_SUBTRACT: // numpad '-'
+        case GLFW_KEY_DOWN:
+        case GLFW_KEY_KP_SUBTRACT:
             app->animator_->setSpeed(
                 std::clamp(app->animator_->speed() * 0.8f, 0.05f, 8.0f));
             break;
-        // Week 3: frame-by-frame scrubbing — J = back, L = forward (video convention)
         case GLFW_KEY_L:
         case GLFW_KEY_RIGHT:
             app->animator_->stepTime(+1.0f / 30.0f);
@@ -246,13 +272,11 @@ void App::cbKey(GLFWwindow* w, int key, int /*scancode*/, int action, int /*mods
             app->showBones_ = !app->showBones_;
             break;
         case GLFW_KEY_M: {
-            // Cycle through available models
             app->modelIndex_ = (app->modelIndex_ + 1) % (int)app->modelPaths_.size();
             app->loadModel(app->modelPaths_[app->modelIndex_]);
             break;
         }
         case GLFW_KEY_0:
-            // Week 2 diagnostic: freeze to bind pose (t=0) + print validation
             app->animator_->freezeBindPose();
             app->animator_->validateBindPose();
             app->animator_->printClipDiagnostic();
@@ -260,10 +284,9 @@ void App::cbKey(GLFWwindow* w, int key, int /*scancode*/, int action, int /*mods
     }
 }
 
-// Character callback — fires with the actual typed Unicode codepoint,
-// correctly handles any keyboard layout for '+' and '-'
 void App::cbChar(GLFWwindow* w, unsigned int cp) {
     auto* app = (App*)glfwGetWindowUserPointer(w);
+    if (app->ui_.wantsKeyboard()) return;
     if (!app->animator_) return;
     if (cp == '+') {
         app->animator_->setSpeed(

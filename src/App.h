@@ -4,6 +4,7 @@
 #include "Model.h"
 #include "Animator.h"
 #include "Renderer.h"
+#include "ui/DebugUI.h"
 #include <string>
 #include <memory>
 #include <vector>
@@ -29,6 +30,9 @@ private:
     std::unique_ptr<Animator> animator_;
     Model model_;
 
+    // ImGui debug panel
+    DebugUI ui_;
+
     // Mouse state
     double lastX_ = 0, lastY_ = 0;
     bool   firstMouse_ = true;
@@ -37,9 +41,12 @@ private:
     // Settings
     bool showBones_ = false;
 
-    // Model list for M-key switching
+    // Model list for M-key / UI switching
     std::vector<std::string> modelPaths_;
     int                      modelIndex_ = 0;
+
+    // FPS cache (updated once per second)
+    int cachedFps_ = 0;
 
     void loadModel(const std::string& path);
     void processInput(float dt);
@@ -49,7 +56,7 @@ private:
     static void cbCursorPos  (GLFWwindow*, double x, double y);
     static void cbScroll     (GLFWwindow*, double, double dy);
     static void cbKey        (GLFWwindow*, int key, int, int action, int);
-    static void cbChar       (GLFWwindow*, unsigned int codepoint);   // typed characters
+    static void cbChar       (GLFWwindow*, unsigned int codepoint);
     static void cbMouseButton(GLFWwindow*, int btn, int action, int);
     static void cbFramebuffer(GLFWwindow*, int w, int h);
 };

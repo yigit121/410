@@ -33,6 +33,16 @@ public:
     // Returns current global transforms (for debug bone drawing)
     const std::vector<glm::mat4>& globalTransforms() const { return global_; }
 
+    // ── Week 6: Animation blending ────────────────────────────────────────────
+    // Start a smooth crossfade from the current clip to clipIdx over durationSec seconds.
+    void  blendTo(int clipIdx, float durationSec = 0.5f);
+    bool  isBlending()  const { return blending_; }
+    float blendAlpha()  const { return blendAlpha_; }
+    int   blendTarget() const { return blendTarget_; }
+
+    // Clip name helper — empty string if idx out of range
+    std::string clipName(int idx) const;
+
 private:
     const Model* model_;
     int   clipIdx_  = 0;
@@ -43,6 +53,15 @@ private:
     std::vector<glm::mat4> local_;
     std::vector<glm::mat4> global_;
     std::vector<glm::mat4> skinning_;
+
+    // Blending state
+    bool  blending_        = false;
+    int   blendTarget_     = 0;
+    float blendSrcTime_    = 0.0f;   // source clip time frozen at blend start
+    float blendTargetTime_ = 0.0f;   // target clip time advancing from 0
+    float blendTime_       = 0.0f;   // elapsed blend time
+    float blendDur_        = 0.5f;   // total blend duration in seconds
+    float blendAlpha_      = 0.0f;   // current blend weight [0=src, 1=dst]
 
     void computeLocal();
     void computeGlobal();

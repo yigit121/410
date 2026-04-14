@@ -4,7 +4,7 @@ project(SkeletalViewer C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Output to build/
+# Output to build/bin/
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
@@ -30,6 +30,21 @@ target_include_directories(tinygltf INTERFACE third_party/tinygltf)
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE third_party/stb)
 
+# Dear ImGui (vendored v1.91.8)
+add_library(imgui STATIC
+    third_party/imgui/imgui.cpp
+    third_party/imgui/imgui_draw.cpp
+    third_party/imgui/imgui_tables.cpp
+    third_party/imgui/imgui_widgets.cpp
+    third_party/imgui/backends/imgui_impl_glfw.cpp
+    third_party/imgui/backends/imgui_impl_opengl3.cpp
+)
+target_include_directories(imgui PUBLIC
+    third_party/imgui
+    third_party/imgui/backends
+)
+target_link_libraries(imgui glfw OpenGL::GL)
+
 # ── Sources ───────────────────────────────────────────────────────────────────
 
 set(SOURCES
@@ -40,17 +55,19 @@ set(SOURCES
     src/GltfLoader.cpp
     src/Animator.cpp
     src/Renderer.cpp
+    src/ui/DebugUI.cpp
 )
 
 add_executable(SkeletalViewer ${SOURCES})
 
-target_include_directories(SkeletalViewer PRIVATE src)
+target_include_directories(SkeletalViewer PRIVATE src src/ui)
 target_compile_definitions(SkeletalViewer PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
 target_link_libraries(SkeletalViewer
     glad
     tinygltf
     stb
+    imgui
     glfw
     glm::glm
     OpenGL::GL

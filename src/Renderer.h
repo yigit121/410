@@ -29,6 +29,13 @@ public:
     // Draw flat ground grid centred at origin
     void drawGrid(const Shader& shader, float radius = 5.0f, int steps = 20);
 
+    // Returns total triangle count across all uploaded meshes
+    int totalTriangles() const {
+        int t = 0;
+        for (const auto& m : meshes_) t += m.indexCount / 3;
+        return t;
+    }
+
 private:
     std::vector<MeshGPU> meshes_;
     unsigned int ubo_     = 0;   // Uniform Buffer Object for skinning matrices
