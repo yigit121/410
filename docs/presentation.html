@@ -3,22 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Real-Time Skeletal Animation Viewer — Presentation</title>
+<title>Real-Time Skeletal Animation Viewer</title>
 <style>
-  /* ── Reset & Base ─────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:       #0e0f14;
-    --surface:  #1a1c24;
-    --border:   #2a2d3a;
-    --accent:   #00e676;
-    --accent2:  #40c4ff;
-    --accent3:  #ff6e40;
-    --text:     #e8eaf0;
-    --muted:    #7a7f95;
-    --slide-w:  900px;
-    --slide-h:  540px;
+    --bg:      #0e0f14;
+    --surface: #1a1c24;
+    --border:  #2a2d3a;
+    --accent:  #00e676;
+    --accent2: #40c4ff;
+    --accent3: #ff6e40;
+    --text:    #e8eaf0;
+    --muted:   #7a7f95;
   }
 
   body {
@@ -33,11 +30,10 @@
     padding: 20px;
   }
 
-  /* ── Slide Container ──────────────────────────────────────────── */
   #deck {
     position: relative;
-    width: var(--slide-w);
-    height: var(--slide-h);
+    width: 900px;
+    height: 540px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -48,15 +44,12 @@
   .slide {
     position: absolute;
     inset: 0;
-    padding: 44px 52px;
+    padding: 40px 52px;
     display: none;
     flex-direction: column;
-    opacity: 0;
-    transition: opacity 0.25s ease;
   }
-  .slide.active { display: flex; opacity: 1; }
+  .slide.active { display: flex; }
 
-  /* ── Slide Accent Bar ─────────────────────────────────────────── */
   .slide::before {
     content: '';
     position: absolute;
@@ -65,808 +58,452 @@
     background: linear-gradient(90deg, var(--accent), var(--accent2));
   }
 
-  /* ── Typography ───────────────────────────────────────────────── */
-  h1 { font-size: 2.2rem; font-weight: 700; line-height: 1.15; }
-  h2 { font-size: 1.55rem; font-weight: 600; margin-bottom: 24px; color: var(--accent); letter-spacing: 0.01em; }
-  h3 { font-size: 1.05rem; font-weight: 600; color: var(--accent2); margin-bottom: 8px; }
-  p  { font-size: 0.95rem; line-height: 1.65; color: var(--muted); }
+  h2  { font-size: 1.45rem; font-weight: 600; color: var(--accent); margin-bottom: 22px; }
+  h3  { font-size: 0.95rem; font-weight: 600; color: var(--accent2); margin-bottom: 6px; }
+  p   { font-size: 0.88rem; line-height: 1.6; color: var(--muted); }
 
-  .subtitle { font-size: 1.1rem; color: var(--muted); margin-top: 10px; }
-  .tag      { display: inline-block; background: rgba(0,230,118,0.12); color: var(--accent);
-              border: 1px solid rgba(0,230,118,0.3); border-radius: 4px;
-              padding: 2px 9px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; }
-  .tag2     { background: rgba(64,196,255,0.12); color: var(--accent2); border-color: rgba(64,196,255,0.3); }
-  .tag3     { background: rgba(255,110,64,0.12); color: var(--accent3); border-color: rgba(255,110,64,0.3); }
+  .tag  { display:inline-block; background:rgba(0,230,118,0.12); color:var(--accent);  border:1px solid rgba(0,230,118,0.3);  border-radius:4px; padding:2px 9px; font-size:0.72rem; font-weight:600; }
+  .tag2 { background:rgba(64,196,255,0.12); color:var(--accent2); border-color:rgba(64,196,255,0.3); }
+  .tag3 { background:rgba(255,110,64,0.12); color:var(--accent3); border-color:rgba(255,110,64,0.3); }
 
-  /* ── Lists ────────────────────────────────────────────────────── */
-  ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-  ul li { font-size: 0.93rem; line-height: 1.5; padding-left: 18px; position: relative; }
-  ul li::before { content: '›'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
-  ul.checks li::before { content: '✓'; color: var(--accent); }
-  ul.dots   li::before { content: '·'; color: var(--accent2); font-size: 1.4rem; top: -4px; }
+  .col2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; flex:1; }
+  .col3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; flex:1; }
 
-  /* ── Grid layouts ─────────────────────────────────────────────── */
-  .col2  { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
-  .col3  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; flex: 1; }
-  .col4  { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; flex: 1; }
-
-  /* ── Cards ────────────────────────────────────────────────────── */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 18px 20px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
   }
-  .card.accent  { border-color: rgba(0,230,118,0.35); }
-  .card.accent2 { border-color: rgba(64,196,255,0.35); }
-  .card.accent3 { border-color: rgba(255,110,64,0.35); }
+  .card.a  { border-color:rgba(0,230,118,0.3); }
+  .card.b  { border-color:rgba(64,196,255,0.3); }
+  .card.c  { border-color:rgba(255,110,64,0.3); }
 
-  .card-icon { font-size: 1.6rem; margin-bottom: 4px; }
-  .card h3   { margin-bottom: 0; }
+  ul { list-style:none; display:flex; flex-direction:column; gap:7px; }
+  li { font-size:0.87rem; padding-left:16px; position:relative; color:var(--text); }
+  li::before { content:'›'; position:absolute; left:0; color:var(--accent); font-weight:700; }
+  li.ck::before { content:'✓'; }
 
-  /* ── Pipeline Arrow ───────────────────────────────────────────── */
-  .pipeline {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    flex: 1;
-    align-content: center;
-  }
-  .pbox {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-align: center;
-    min-width: 80px;
-  }
-  .pbox.lit { border-color: var(--accent); color: var(--accent); background: rgba(0,230,118,0.08); }
-  .pbox.lit2 { border-color: var(--accent2); color: var(--accent2); background: rgba(64,196,255,0.08); }
-  .parr { color: var(--muted); font-size: 1.1rem; }
-
-  /* ── Code block ───────────────────────────────────────────────── */
   .code {
-    background: #0a0c12;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px 20px;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 0.78rem;
-    line-height: 1.7;
-    color: #c8d0e8;
-    flex: 1;
+    background:#0a0c12; border:1px solid var(--border); border-radius:6px;
+    padding:12px 16px; font-family:'SF Mono','Fira Code',monospace;
+    font-size:0.76rem; line-height:1.75; color:#c8d0e8;
   }
-  .code .kw  { color: #82aaff; }
-  .code .fn  { color: var(--accent); }
-  .code .cm  { color: var(--muted); }
-  .code .num { color: var(--accent3); }
-  .code .str { color: #f7c26b; }
+  .g { color:var(--accent); }
+  .b { color:var(--accent2); }
+  .o { color:var(--accent3); }
+  .m { color:var(--muted); }
 
-  /* ── Topic Pill Grid ──────────────────────────────────────────── */
-  .topics {
-    display: flex; flex-wrap: wrap; gap: 10px;
-    align-content: flex-start;
-    flex: 1;
-  }
-  .topic-pill {
-    border-radius: 6px; padding: 10px 16px;
-    font-size: 0.82rem; font-weight: 600;
-    display: flex; align-items: center; gap: 8px;
-    border: 1px solid;
-  }
-  .tp-done { background: rgba(0,230,118,0.1); color: var(--accent); border-color: rgba(0,230,118,0.3); }
-  .tp-next { background: rgba(64,196,255,0.1); color: var(--accent2); border-color: rgba(64,196,255,0.3); }
+  .pbox { background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:8px 12px; font-size:0.75rem; font-weight:600; text-align:center; }
+  .pbox.g { border-color:var(--accent);  color:var(--accent);  background:rgba(0,230,118,0.07); }
+  .pbox.b { border-color:var(--accent2); color:var(--accent2); background:rgba(64,196,255,0.07); }
+  .arr { color:var(--muted); font-size:1.1rem; align-self:center; }
 
-  /* ── Nav ──────────────────────────────────────────────────────── */
-  #nav {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-top: 16px;
-  }
-  .nav-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 6px;
-    padding: 8px 20px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .nav-btn:hover { border-color: var(--accent); background: rgba(0,230,118,0.07); }
-  #counter { font-size: 0.82rem; color: var(--muted); min-width: 70px; text-align: center; }
+  .pill { border-radius:5px; padding:8px 13px; font-size:0.78rem; font-weight:600; border:1px solid; display:flex; align-items:center; gap:6px; }
+  .p-done { background:rgba(0,230,118,0.09); color:var(--accent);  border-color:rgba(0,230,118,0.3); }
+  .p-plan { background:rgba(64,196,255,0.09); color:var(--accent2); border-color:rgba(64,196,255,0.3); }
 
-  /* ── Slide-specific ───────────────────────────────────────────── */
-  .title-slide { align-items: flex-start; justify-content: center; }
-  .title-slide h1 { font-size: 2.5rem; background: linear-gradient(135deg, var(--text), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .num-box { text-align:center; }
+  .num-box .big { font-size:2rem; font-weight:700; }
+  .small { font-size:0.73rem; color:var(--muted); }
 
-  .flow-row {
-    display: flex; align-items: flex-start; gap: 8px;
-    font-size: 0.8rem; flex: 1; align-content: center; flex-wrap: wrap;
-  }
-  .flow-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 12px;
-    text-align: center;
-    font-size: 0.75rem;
-  }
-  .flow-box b { display: block; font-size: 0.85rem; margin-bottom: 2px; }
-  .flow-box.g { border-color: var(--accent); color: var(--accent); background: rgba(0,230,118,0.07); }
-  .flow-box.b { border-color: var(--accent2); color: var(--accent2); background: rgba(64,196,255,0.07); }
-  .flow-arr { color: var(--muted); align-self: center; font-size: 1.2rem; }
+  .slide-num    { position:absolute; bottom:12px; right:18px; font-size:0.68rem; color:var(--border); }
+  .slide-footer { position:absolute; bottom:12px; left:52px;  font-size:0.68rem; color:var(--border); letter-spacing:0.07em; }
 
-  .demo-slide {
-    justify-content: center; align-items: center; text-align: center;
-    background: radial-gradient(ellipse at center, #0d1f14 0%, var(--bg) 70%);
-  }
-  .demo-slide h2 { font-size: 2.8rem; color: var(--accent); }
-  .demo-slide p  { font-size: 1rem; margin-top: 12px; color: var(--muted); }
+  /* DEMO slide */
+  .demo-bg { justify-content:center; align-items:center; text-align:center;
+             background:radial-gradient(ellipse at center,#0d1f14 0%,var(--bg) 70%); }
+  .demo-bg h2 { font-size:2.6rem; color:var(--accent); margin-bottom:0; }
 
-  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
-  .small   { font-size: 0.78rem; color: var(--muted); }
-  .accent-text  { color: var(--accent); }
-  .accent2-text { color: var(--accent2); }
-  .accent3-text { color: var(--accent3); }
-
-  .slide-num {
-    position: absolute; bottom: 14px; right: 20px;
-    font-size: 0.7rem; color: var(--border);
-  }
-
-  /* footer branding */
-  .slide-footer {
-    position: absolute; bottom: 14px; left: 52px;
-    font-size: 0.7rem; color: var(--border);
-    letter-spacing: 0.08em;
-  }
+  /* nav */
+  #nav { display:flex; align-items:center; gap:14px; margin-top:14px; }
+  .btn { background:var(--surface); border:1px solid var(--border); color:var(--text);
+         border-radius:6px; padding:7px 18px; font-size:0.83rem; cursor:pointer; }
+  .btn:hover { border-color:var(--accent); }
+  #ctr { font-size:0.8rem; color:var(--muted); min-width:56px; text-align:center; }
 </style>
 </head>
 <body>
 
 <div id="deck">
 
-  <!-- ─────────────────────────────── SLIDE 1 — TITLE ─── -->
-  <div class="slide title-slide active" id="s1">
-    <div style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;">
+  <!-- 1 TITLE -->
+  <div class="slide active" id="s1">
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
       <span class="tag">CG Course Project</span>
       <span class="tag2">OpenGL 4.1</span>
       <span class="tag3">glTF 2.0</span>
     </div>
-    <h1>Real-Time Skeletal<br>Animation Viewer</h1>
-    <p class="subtitle" style="margin-top:16px; font-size:1rem;">
-      A GPU-accelerated character animation system built from scratch<br>
-      using shader-based OpenGL, skeletal skinning, and interactive controls.
+    <h1 style="font-size:2.3rem;font-weight:700;line-height:1.15;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+      Real-Time Skeletal<br>Animation Viewer
+    </h1>
+    <p style="margin-top:14px;font-size:0.97rem;color:var(--muted);">
+      A GPU-accelerated character animation system built from scratch —<br>
+      skeletal skinning, keyframe interpolation, animation blending, and an interactive debug panel.
     </p>
-    <div style="margin-top:auto; display:flex; gap:32px;">
-      <div>
-        <div class="small" style="color:var(--accent); margin-bottom:4px;">TEAM</div>
-        <div style="font-size:0.9rem;">Member A &nbsp;·&nbsp; Member B</div>
-      </div>
-      <div>
-        <div class="small" style="color:var(--accent); margin-bottom:4px;">PLATFORM</div>
-        <div style="font-size:0.9rem;">macOS · OpenGL 4.1 Core · C++17</div>
-      </div>
-      <div>
-        <div class="small" style="color:var(--accent); margin-bottom:4px;">STATUS</div>
-        <div style="font-size:0.9rem; color:var(--accent);">MVP Complete ✓</div>
-      </div>
+    <div style="margin-top:auto;display:flex;gap:36px;">
+      <div><div class="small" style="color:var(--accent);margin-bottom:3px;">TEAM</div><div style="font-size:0.88rem;">Member A · Member B</div></div>
+      <div><div class="small" style="color:var(--accent);margin-bottom:3px;">STACK</div><div style="font-size:0.88rem;">C++17 · OpenGL 4.1 · macOS</div></div>
+      <div><div class="small" style="color:var(--accent);margin-bottom:3px;">STATUS</div><div style="font-size:0.88rem;color:var(--accent);">Complete ✓</div></div>
     </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">1</div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">1 / 10</div>
   </div>
 
-  <!-- ─────────────────────────────── SLIDE 2 — AGENDA ─── -->
+  <!-- 2 PROJECT GOAL + SYLLABUS -->
   <div class="slide" id="s2">
-    <h2>Agenda</h2>
-    <div class="col2" style="gap:16px;">
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div class="card accent">
-          <div class="card-icon">🎯</div>
-          <h3>Project Goal</h3>
-          <p>What we built and why it connects to the course</p>
-        </div>
-        <div class="card accent2">
-          <div class="card-icon">🔧</div>
-          <h3>Implementation Overview</h3>
-          <p>Pipeline, architecture, and how each system works</p>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div class="card accent2">
-          <div class="card-icon">📚</div>
-          <h3>Syllabus Topics</h3>
-          <p>How every course topic maps to a concrete feature</p>
-        </div>
-        <div class="card accent3">
-          <div class="card-icon">▶</div>
-          <h3>Live Demo</h3>
-          <p>Interactive viewer — camera, animation, blending, debug panel</p>
-        </div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">2</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 3 — GOAL ─── -->
-  <div class="slide" id="s3">
-    <h2>What We Built & Why</h2>
+    <h2>Project Goal &amp; Syllabus Coverage</h2>
     <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent">
-          <h3>The Problem</h3>
-          <p>3D games and films rely on <em>skeletal animation</em> — deforming a mesh by blending transforms from a hierarchy of bones. Implementing this from scratch requires almost every topic in a graphics course.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card a">
+          <h3>What We Built</h3>
+          <p>Load a glTF 2.0 skinned character, sample its animation keyframes on the CPU, upload bone matrices to the GPU, and deform the mesh in the vertex shader — all interactively in real time.</p>
         </div>
         <div class="card">
-          <h3>Our Solution</h3>
-          <ul class="checks" style="gap:7px;">
-            <li>Load glTF 2.0 skinned characters</li>
-            <li>Sample &amp; interpolate keyframe animations</li>
-            <li>Upload bone matrices to the GPU (UBO)</li>
-            <li>Deform the mesh in the vertex shader</li>
-            <li>Interactive camera, playback, blending</li>
-          </ul>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent2">
           <h3>Test Models (Khronos Reference)</h3>
-          <div style="display:flex; gap:10px; margin-top:6px;">
-            <div class="card" style="flex:1; padding:10px;">
-              <div style="font-size:1.4rem;">🚶</div>
-              <div style="font-size:0.85rem; font-weight:600;">CesiumMan</div>
-              <div class="small">19 bones · 1 walking clip</div>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <div class="card" style="flex:1;padding:9px;text-align:center;">
+              <div style="font-size:1.3rem;">🚶</div>
+              <div style="font-size:0.82rem;font-weight:600;">CesiumMan</div>
+              <div class="small">19 bones · walking clip</div>
             </div>
-            <div class="card" style="flex:1; padding:10px;">
-              <div style="font-size:1.4rem;">🤖</div>
-              <div style="font-size:0.85rem; font-weight:600;">RiggedFigure</div>
+            <div class="card" style="flex:1;padding:9px;text-align:center;">
+              <div style="font-size:1.3rem;">🤖</div>
+              <div style="font-size:0.82rem;font-weight:600;">RiggedFigure</div>
               <div class="small">8 bones · simpler rig</div>
             </div>
           </div>
         </div>
-        <div class="card accent3">
-          <h3>Why glTF?</h3>
-          <p>Open standard by Khronos (same group behind OpenGL). Stores geometry, skeleton, skin, animations, and textures in one file. The "JPEG of 3D".</p>
-        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;">
+        <div class="pill p-done">✓ Graphics Systems &amp; Models</div>
+        <div class="pill p-done">✓ Graphics Pipeline</div>
+        <div class="pill p-done">✓ Shader-Based OpenGL</div>
+        <div class="pill p-done">✓ Input &amp; Interaction</div>
+        <div class="pill p-done">✓ Geometric Transformations</div>
+        <div class="pill p-done">✓ Viewing &amp; Projection</div>
+        <div class="pill p-done">✓ Shading</div>
+        <div class="pill p-done">✓ Buffers &amp; Texture Mapping</div>
+        <div class="pill p-done">✓ Building 3D Models</div>
+        <div class="pill p-plan">◎ Ray Tracing — future</div>
       </div>
     </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">3</div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">2 / 10</div>
   </div>
 
-  <!-- ─────────────────────────────── SLIDE 4 — SYLLABUS TOPICS ─── -->
+  <!-- 3 GRAPHICS PIPELINE -->
+  <div class="slide" id="s3">
+    <h2>Graphics Pipeline</h2>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+      <div class="pbox">CPU<br><span class="small">anim sample</span></div><div class="arr">→</div>
+      <div class="pbox b">UBO<br><span class="small">128 mat4s</span></div><div class="arr">→</div>
+      <div class="pbox g">Vertex<br>Shader<br><span class="small">skinning</span></div><div class="arr">→</div>
+      <div class="pbox">Rasterise</div><div class="arr">→</div>
+      <div class="pbox g">Fragment<br>Shader<br><span class="small">lighting</span></div><div class="arr">→</div>
+      <div class="pbox b">Frame-<br>buffer</div>
+    </div>
+    <div class="col2">
+      <div class="card a">
+        <h3>Vertex Shader — GPU Skinning</h3>
+        <p style="margin-bottom:8px;">Each vertex blends up to 4 bone transforms by their skin weights:</p>
+        <div class="code">
+<span class="g">mat4</span> skin = weights.x * bones[boneIDs.x]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ weights.y * bones[boneIDs.y]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ weights.z * bones[boneIDs.z]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ weights.w * bones[boneIDs.w];<br>
+<span class="b">gl_Position</span> = Proj * View * Model * skin * <span class="g">vec4</span>(aPos, <span class="o">1.0</span>);
+        </div>
+      </div>
+      <div class="card b">
+        <h3>Fragment Shader — Blinn-Phong Shading</h3>
+        <ul>
+          <li>Ambient 0.15 — prevents pure black shadows</li>
+          <li>Diffuse 0.8 — Lambert: <span class="g">max(N·L, 0)</span></li>
+          <li>Specular 0.2 — half-vector: <span class="b">(N·H)³²</span></li>
+          <li>Albedo from glTF texture (stb_image)</li>
+          <li>Normals via <span class="o">inverse-transpose</span> of skin matrix</li>
+        </ul>
+      </div>
+    </div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">3 / 10</div>
+  </div>
+
+  <!-- 4 GEOMETRIC TRANSFORMATIONS -->
   <div class="slide" id="s4">
-    <h2>Course Topics — How Each One Appears</h2>
-    <div class="topics">
-      <div class="topic-pill tp-done">✓ Graphics Systems &amp; Models<br><span class="small" style="color:var(--muted); font-weight:400;">Scene graph, glTF model structure</span></div>
-      <div class="topic-pill tp-done">✓ Graphics Pipeline<br><span class="small" style="color:var(--muted); font-weight:400;">Full vertex→fragment pipeline</span></div>
-      <div class="topic-pill tp-done">✓ Shader-Based OpenGL<br><span class="small" style="color:var(--muted); font-weight:400;">Custom GLSL skinning vertex shader</span></div>
-      <div class="topic-pill tp-done">✓ Input &amp; Interaction<br><span class="small" style="color:var(--muted); font-weight:400;">GLFW mouse/keyboard, ImGui panel</span></div>
-      <div class="topic-pill tp-done">✓ Geometric Transformations<br><span class="small" style="color:var(--muted); font-weight:400;">TRS, bone hierarchy, forward kinematics</span></div>
-      <div class="topic-pill tp-done">✓ Viewing &amp; Projection<br><span class="small" style="color:var(--muted); font-weight:400;">Orbit camera, perspective projection</span></div>
-      <div class="topic-pill tp-done">✓ Shading<br><span class="small" style="color:var(--muted); font-weight:400;">Blinn-Phong lighting, normal transform</span></div>
-      <div class="topic-pill tp-done">✓ Building 3D Models<br><span class="small" style="color:var(--muted); font-weight:400;">glTF parsing, interleaved VAO layout</span></div>
-      <div class="topic-pill tp-done">✓ Buffers &amp; Texture Mapping<br><span class="small" style="color:var(--muted); font-weight:400;">VAO/VBO/IBO/UBO, albedo textures</span></div>
-      <div class="topic-pill tp-next">◎ Ray Tracing<br><span class="small" style="font-weight:400; opacity:0.7;">Future extension — shadow rays</span></div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">4</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 5 — GRAPHICS PIPELINE ─── -->
-  <div class="slide" id="s5">
-    <h2>Graphics Pipeline — How Our App Uses It</h2>
-    <div style="flex:1; display:flex; flex-direction:column; gap:16px;">
-      <div class="pipeline" style="flex:none;">
-        <div class="pbox">CPU<br><span class="small">Animation<br>Sampling</span></div>
-        <div class="parr">→</div>
-        <div class="pbox lit2">UBO Upload<br><span class="small">128 bone<br>mat4s</span></div>
-        <div class="parr">→</div>
-        <div class="pbox lit">Vertex<br>Shader<br><span class="small">GPU Skinning</span></div>
-        <div class="parr">→</div>
-        <div class="pbox">Rasterise</div>
-        <div class="parr">→</div>
-        <div class="pbox lit">Fragment<br>Shader<br><span class="small">Blinn-Phong</span></div>
-        <div class="parr">→</div>
-        <div class="pbox lit2">Framebuffer<br><span class="small">depth + color</span></div>
-      </div>
-      <div class="col2" style="gap:14px; flex:1;">
-        <div class="card accent">
-          <h3>Vertex Shader — GPU Skinning</h3>
-          <p>Each vertex is influenced by up to 4 bones. The shader computes a <em>weighted sum</em> of the 4 bone matrices and transforms the vertex position and normal through it.</p>
-          <div style="margin-top:8px; font-family:monospace; font-size:0.78rem; color:var(--accent); background:rgba(0,230,118,0.05); padding:8px; border-radius:4px;">
-            v' = w₀·M[b₀]·v + w₁·M[b₁]·v<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;+ w₂·M[b₂]·v + w₃·M[b₃]·v
-          </div>
-        </div>
-        <div class="card accent2">
-          <h3>Fragment Shader — Shading</h3>
-          <p>Implements <strong>Blinn-Phong</strong> illumination: ambient + diffuse (NdotL) + specular (half-vector). Samples the character's albedo texture. Normals are transformed with the inverse-transpose for correctness.</p>
-        </div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">5</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 6 — GEOMETRIC TRANSFORMATIONS ─── -->
-  <div class="slide" id="s6">
     <h2>Geometric Objects &amp; Transformations</h2>
     <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card a">
           <h3>Bone Hierarchy = Scene Graph</h3>
-          <p>Each bone has a <strong>parent index</strong> and a <strong>local TRS transform</strong> (Translation, Rotation, Scale). A single forward pass computes global world transforms:</p>
-          <div style="font-family:monospace; font-size:0.78rem; color:var(--accent); background:rgba(0,230,118,0.05); padding:8px; border-radius:4px; margin-top:8px;">
-            global[i] = global[parent[i]] × local[i]
-          </div>
+          <p>Each bone stores a parent index and a local TRS (Translation · Rotation · Scale) matrix. A single forward pass builds global world transforms:</p>
+          <div class="code" style="margin-top:8px;"><span class="b">global</span>[i] = <span class="b">global</span>[parent[i]] × <span class="g">local</span>[i]</div>
         </div>
-        <div class="card accent2">
+        <div class="card b">
           <h3>Skinning Matrix</h3>
-          <p>Transforms a vertex from its <em>bind-pose position</em> to its <em>animated world position</em>:</p>
-          <div style="font-family:monospace; font-size:0.78rem; color:var(--accent2); background:rgba(64,196,255,0.05); padding:8px; border-radius:4px; margin-top:8px;">
-            M_skin[i] = global[i] × invBind[i]
-          </div>
-          <p style="margin-top:8px;">The <strong>invBind</strong> matrix moves vertices out of world space back into bone-local space before animating.</p>
+          <p>Brings a vertex from bind-pose into animated world space:</p>
+          <div class="code" style="margin-top:8px;"><span class="g">M_skin</span>[i] = <span class="b">global</span>[i] × <span class="o">invBind</span>[i]</div>
+          <p style="margin-top:6px;"><span class="o">invBind</span> moves vertices back to bone-local space before animating. At t=0 the result must be identity — our validation check.</p>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:10px; justify-content:center;">
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; font-size:0.82rem; font-family:monospace; line-height:2;">
-          <div style="color:var(--accent);">Root (Hips)</div>
-          <div style="padding-left:16px; color:var(--accent2);">├─ Spine</div>
-          <div style="padding-left:32px; color:var(--text);">│  ├─ Chest → Neck → Head</div>
-          <div style="padding-left:32px; color:var(--text);">│  ├─ L.Shoulder → L.Arm → L.Hand</div>
-          <div style="padding-left:32px; color:var(--text);">│  └─ R.Shoulder → R.Arm → R.Hand</div>
-          <div style="padding-left:16px; color:var(--accent2);">├─ L.Thigh → L.Shin → L.Foot</div>
-          <div style="padding-left:16px; color:var(--accent2);">└─ R.Thigh → R.Shin → R.Foot</div>
-        </div>
-        <p class="small" style="text-align:center; color:var(--muted);">CesiumMan skeleton — 19 bones, 3 levels deep</p>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:0.8rem;font-family:monospace;line-height:2.1;display:flex;flex-direction:column;justify-content:center;">
+        <div class="g">Root (Hips)</div>
+        <div style="padding-left:16px;color:var(--accent2);">├─ Spine</div>
+        <div style="padding-left:32px;color:var(--text);">│ ├─ Chest → Neck → Head</div>
+        <div style="padding-left:32px;color:var(--text);">│ ├─ L.Shoulder → L.Arm → L.Hand</div>
+        <div style="padding-left:32px;color:var(--text);">│ └─ R.Shoulder → R.Arm → R.Hand</div>
+        <div style="padding-left:16px;color:var(--accent2);">├─ L.Thigh → L.Shin → L.Foot</div>
+        <div style="padding-left:16px;color:var(--accent2);">└─ R.Thigh → R.Shin → R.Foot</div>
+        <div class="small" style="margin-top:10px;text-align:center;">CesiumMan — 19 bones</div>
       </div>
     </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">6</div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">4 / 10</div>
   </div>
 
-  <!-- ─────────────────────────────── SLIDE 7 — ANIMATION SAMPLING ─── -->
-  <div class="slide" id="s7">
-    <h2>Animation Sampling &amp; Interpolation</h2>
+  <!-- 5 ANIMATION + BLENDING -->
+  <div class="slide" id="s5">
+    <h2>Animation Sampling &amp; Blending</h2>
     <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:12px;">
         <div class="card">
-          <h3>Keyframe Channels</h3>
-          <p>Each animation stores keyframe tracks per bone: separate time arrays and value arrays for T (position), R (rotation), S (scale). On each frame, we binary-search for the surrounding keyframes and interpolate.</p>
-        </div>
-        <div class="card accent">
-          <h3>Rotation — SLERP</h3>
-          <p>Rotations are stored as <strong>unit quaternions</strong> and interpolated with <strong>Spherical Linear Interpolation</strong> — takes the shortest arc on the rotation sphere. No gimbal lock.</p>
-          <div style="font-family:monospace; font-size:0.78rem; color:var(--accent); background:rgba(0,230,118,0.05); padding:8px; border-radius:4px; margin-top:8px;">
-            R = slerp(R_prev, R_next, α)
-          </div>
-        </div>
-        <div class="card accent2">
-          <h3>Translation &amp; Scale — LERP</h3>
-          <p>Positions and scales are interpolated linearly between keyframes. α = (t − t₀) / (t₁ − t₀).</p>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent3">
-          <h3>Animation Blending (Week 6)</h3>
-          <p>To crossfade between two clips, we sample <em>both</em> at TRS level simultaneously and blend:</p>
-          <ul style="margin-top:8px; gap:6px;">
-            <li>Source clip: time frozen at blend start</li>
-            <li>Target clip: time advancing from 0</li>
-            <li>Blend α goes from 0 → 1 over 0.4 s</li>
-            <li>SLERP on rotations prevents stretching</li>
+          <h3>Keyframe Interpolation</h3>
+          <ul>
+            <li><strong class="b">Translation / Scale</strong> — linear LERP between keyframes</li>
+            <li><strong class="g">Rotation</strong> — SLERP (spherical linear) on unit quaternions — shortest arc, no gimbal lock</li>
+            <li>Binary search finds surrounding keyframes each frame</li>
           </ul>
         </div>
-        <div class="card">
+        <div class="card a">
+          <h3>Animation Blending (N key)</h3>
+          <ul>
+            <li>Sample <em>both</em> clips at TRS level simultaneously</li>
+            <li>Blend α goes 0 → 1 over 0.4 s</li>
+            <li>Source clip time frozen; target starts from 0</li>
+            <li>SLERP rotations — <em>no</em> matrix lerp (causes shearing)</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card b">
           <h3>Why Not Matrix LERP?</h3>
-          <p>Linearly interpolating two rotation matrices does <em>not</em> stay orthogonal — the result shears and scales the mesh. TRS-level SLERP is the correct solution used in production.</p>
+          <p>Linearly interpolating two rotation matrices breaks orthogonality — the result shears and deforms the mesh. Blending must happen at TRS level before building the mat4.</p>
         </div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">7</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 8 — BUFFERS & TEXTURES ─── -->
-  <div class="slide" id="s8">
-    <h2>Buffers &amp; Texture Mapping</h2>
-    <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="card accent">
-          <h3>Vertex Buffer Object (VBO)</h3>
-          <p>All per-vertex data is packed into a single interleaved buffer:</p>
-          <div style="font-family:monospace; font-size:0.75rem; color:var(--text); background:rgba(0,0,0,0.3); padding:10px; border-radius:4px; margin-top:8px; line-height:2;">
-            <span style="color:var(--accent);">attrib 0</span> — position (vec3)<br>
-            <span style="color:var(--accent);">attrib 1</span> — normal   (vec3)<br>
-            <span style="color:var(--accent);">attrib 2</span> — UV       (vec2)<br>
-            <span style="color:var(--accent2);">attrib 3</span> — bone IDs (ivec4)<br>
-            <span style="color:var(--accent2);">attrib 4</span> — weights  (vec4)
-          </div>
-        </div>
-        <div class="card accent2">
-          <h3>Uniform Buffer Object (UBO)</h3>
-          <p>128 skinning matrices (mat4) uploaded as a <strong>std140 UBO</strong> — a single GPU buffer that all vertex shader invocations read simultaneously. 8 KB per frame update.</p>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
         <div class="card">
-          <h3>Albedo Texture</h3>
-          <p>Loaded from glTF via <strong>stb_image</strong>, uploaded to a 2D GL texture with mipmaps. The fragment shader samples it with the vertex's UV coordinates. If no texture exists, a neutral grey fallback is used.</p>
-        </div>
-        <div class="card accent3">
-          <h3>Depth Buffer</h3>
-          <p>Standard <code style="color:var(--accent3);">GL_DEPTH_TEST</code> ensures correct occlusion. Intentionally <em>disabled</em> when drawing the skeleton overlay so bone lines are always visible through the mesh surface.</p>
+          <h3>Bind Pose Validation</h3>
+          <p>At t = 0, <span class="g">M_skin[i]</span> must equal identity for every bone (global = bind, so global × invBind = I). Press <strong class="o">0</strong> to run the check and print the max error.</p>
         </div>
       </div>
     </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">8</div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">5 / 10</div>
   </div>
 
-  <!-- ─────────────────────────────── SLIDE 9 — CAMERA & INPUT ─── -->
-  <div class="slide" id="s9">
+  <!-- 6 BUFFERS + TEXTURES -->
+  <div class="slide" id="s6">
+    <h2>Buffers &amp; Texture Mapping · Building 3D Models</h2>
+    <div class="col3">
+      <div class="card a">
+        <h3>VAO / VBO</h3>
+        <p style="margin-bottom:8px;">Single interleaved buffer per mesh:</p>
+        <div class="code" style="font-size:0.71rem;line-height:1.9;">
+<span class="g">0</span> pos     vec3<br>
+<span class="g">1</span> normal  vec3<br>
+<span class="g">2</span> uv      vec2<br>
+<span class="b">3</span> boneIDs ivec4<br>
+<span class="b">4</span> weights vec4
+        </div>
+      </div>
+      <div class="card b">
+        <h3>UBO — Bone Matrices</h3>
+        <p>128 skinning mat4s in a <strong>std140 Uniform Buffer Object</strong>. A single <code class="b">glBufferSubData</code> call uploads all bones per frame.</p>
+        <div style="margin-top:8px;font-size:0.78rem;color:var(--muted);">128 × 64 B = <span class="b">8 KB</span> per frame</div>
+        <p style="margin-top:6px;" class="small">SSBO (GL 4.3+) would allow unlimited bones — macOS caps at 4.1.</p>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+        <div class="card c" style="flex:1;">
+          <h3>Albedo Texture</h3>
+          <p>Loaded via <strong>stb_image</strong>, uploaded with mipmaps. Sampled in the fragment shader using the mesh's UV coordinates.</p>
+        </div>
+        <div class="card" style="flex:1;">
+          <h3>glTF 2.0 Format</h3>
+          <p>Parsed with <strong>tinygltf</strong>. One file contains geometry, skeleton, inverse bind matrices, animation channels, and textures.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">6 / 10</div>
+  </div>
+
+  <!-- 7 CAMERA + INPUT -->
+  <div class="slide" id="s7">
     <h2>Viewing &amp; Projection · Input &amp; Interaction</h2>
     <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent2">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card b">
           <h3>Orbit Camera</h3>
-          <p>Parameterised by <strong>yaw, pitch, radius, target</strong>. The view matrix is reconstructed from spherical coordinates each frame. Target defaults to hip height so the character is centred.</p>
+          <p>Parameterised by <strong>yaw, pitch, radius, target</strong>. View matrix rebuilt from spherical coords each frame. 45° FOV perspective projection, aspect updated on resize.</p>
+          <div class="code" style="margin-top:8px;font-size:0.73rem;"><span class="b">gl_Position</span> = Proj × View × <span class="g">rootTransform</span> × skinnedPos</div>
+          <p style="margin-top:6px;" class="small">rootTransform handles glTF axis conventions (Z_UP nodes above the skeleton).</p>
         </div>
         <div class="card">
-          <h3>Perspective Projection</h3>
-          <p>45° vertical FOV, aspect ratio updated on window resize. Near plane 0.05 m, far plane 500 m — avoids z-fighting with the ground grid while keeping precision near the character.</p>
-        </div>
-        <div class="card accent">
-          <h3>MVP Transform</h3>
-          <div style="font-family:monospace; font-size:0.8rem; color:var(--accent); background:rgba(0,230,118,0.05); padding:8px; border-radius:4px; margin-top:4px;">
-            gl_Position = Proj × View × Model × skinnedPos
-          </div>
-          <p style="margin-top:6px;">Model = rootTransform (handles glTF axis conventions)</p>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="card accent3">
-          <h3>Input System</h3>
-          <ul style="gap:6px;">
-            <li><strong>LMB drag</strong> → orbit (yaw &amp; pitch)</li>
+          <h3>GLFW Input</h3>
+          <ul style="gap:5px;">
+            <li><strong>LMB drag</strong> → orbit (yaw / pitch)</li>
             <li><strong>RMB drag</strong> → pan (translate target)</li>
             <li><strong>Scroll</strong> → zoom (radius)</li>
             <li><strong>Space</strong> → play / pause</li>
-            <li><strong>N</strong> → smooth clip crossfade</li>
-            <li><strong>J / L</strong> → frame-step scrubbing</li>
+            <li><strong>N</strong> → smooth blend to next clip</li>
+            <li><strong>J / L</strong> → frame-step scrub ±1/30 s</li>
           </ul>
         </div>
-        <div class="card accent2">
-          <h3>Dear ImGui Panel</h3>
-          <p>Provides a GUI overlay with sliders, buttons, and a clip selector — all without blocking the GLFW event loop. ImGui callbacks chain our existing GLFW callbacks automatically.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card a">
+          <h3>Dear ImGui Debug Panel</h3>
+          <ul style="gap:5px;">
+            <li>Play/pause · Reset · time scrub slider</li>
+            <li>Speed slider (0.05× – 8×)</li>
+            <li>Clip selector — click to crossfade</li>
+            <li>Blend progress bar</li>
+            <li>Bone overlay toggle</li>
+            <li>FPS + triangle counter</li>
+          </ul>
+        </div>
+        <div class="card c">
+          <h3>Keyboard Layout Fix</h3>
+          <p>Used <code class="o">glfwSetCharCallback</code> (Unicode codepoints) for +/− speed keys instead of key codes — works correctly on any keyboard layout.</p>
         </div>
       </div>
     </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">9</div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">7 / 10</div>
   </div>
 
-  <!-- ─────────────────────────────── SLIDE 10 — SHADING ─── -->
+  <!-- 8 CHALLENGES -->
+  <div class="slide" id="s8">
+    <h2>Key Challenges &amp; Solutions</h2>
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;">
+      <div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:11px 16px;">
+        <div style="font-size:1.2rem;flex-shrink:0;">🌀</div>
+        <div><div style="font-weight:600;font-size:0.88rem;color:var(--accent3);">Model tiny &amp; upside-down</div>
+        <div class="small">Non-joint ancestor nodes (Z_UP, Armature) carry orientation. Fixed: DFS walk accumulates their transforms into a rootTransform applied as uModel.</div></div>
+      </div>
+      <div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:11px 16px;">
+        <div style="font-size:1.2rem;flex-shrink:0;">📦</div>
+        <div><div style="font-weight:600;font-size:0.88rem;color:var(--accent3);">layout(binding=0) compile error</div>
+        <div class="small">OpenGL 4.1 doesn't support explicit UBO binding qualifiers in GLSL. Removed from shader; binding set via <code>glUniformBlockBinding()</code> at load time.</div></div>
+      </div>
+      <div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:11px 16px;">
+        <div style="font-size:1.2rem;flex-shrink:0;">🦴</div>
+        <div><div style="font-weight:600;font-size:0.88rem;color:var(--accent3);">Skeleton overlay invisible</div>
+        <div class="small">Depth test culled lines sitting inside the mesh. Fixed: <code>glDisable(GL_DEPTH_TEST)</code> for the bone draw pass, restored after.</div></div>
+      </div>
+      <div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:11px 16px;">
+        <div style="font-size:1.2rem;flex-shrink:0;">🔀</div>
+        <div><div style="font-weight:600;font-size:0.88rem;color:var(--accent3);">Animation blending caused mesh shearing</div>
+        <div class="small">Matrix-level lerp breaks rotation orthogonality. Solution: blend at TRS level — SLERP quaternion rotations, LERP translation and scale before building mat4.</div></div>
+      </div>
+      <div class="card" style="flex-direction:row;align-items:center;gap:14px;padding:11px 16px;">
+        <div style="font-size:1.2rem;flex-shrink:0;">⌨️</div>
+        <div><div style="font-weight:600;font-size:0.88rem;color:var(--accent3);">Speed keys broken on macOS keyboard layout</div>
+        <div class="small">GLFW key codes differ by layout. Used <code>glfwSetCharCallback</code> which fires actual Unicode codepoints — layout-independent.</div></div>
+      </div>
+    </div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">8 / 10</div>
+  </div>
+
+  <!-- 9 DEMO -->
+  <div class="slide demo-bg" id="s9">
+    <div style="font-size:2.8rem;margin-bottom:16px;">▶</div>
+    <h2 style="font-size:2.8rem;margin-bottom:0;">Live Demo</h2>
+    <p style="margin-top:14px;font-size:0.95rem;">
+      <code style="color:var(--accent);">build/bin/SkeletalViewer</code>
+    </p>
+    <div style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <span class="tag">Orbit camera</span>
+      <span class="tag2">Play / Pause</span>
+      <span class="tag3">Speed control</span>
+      <span class="tag">Clip switch [ ]</span>
+      <span class="tag2">Smooth blend (N)</span>
+      <span class="tag3">Bone overlay (B)</span>
+      <span class="tag">Switch model (M)</span>
+      <span class="tag2">ImGui panel</span>
+    </div>
+    <div class="slide-num">9 / 10</div>
+  </div>
+
+  <!-- 10 CONCLUSION + NEXT -->
   <div class="slide" id="s10">
-    <h2>Shading</h2>
+    <h2>Conclusion &amp; What's Next</h2>
     <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent">
-          <h3>Blinn-Phong Illumination</h3>
-          <p>One directional light. Three components:</p>
-          <ul style="margin-top:8px; gap:6px;">
-            <li><strong style="color:var(--accent);">Ambient (0.15)</strong> — prevents fully black shadows</li>
-            <li><strong style="color:var(--accent2);">Diffuse (0.8)</strong> — Lambert: max(N·L, 0)</li>
-            <li><strong style="color:var(--accent3);">Specular (0.2)</strong> — half-vector: (N·H)³²</li>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card a">
+          <h3>What We Delivered</h3>
+          <ul class="ck" style="gap:6px;">
+            <li>Full glTF 2.0 loading pipeline</li>
+            <li>GPU skinning vertex shader</li>
+            <li>TRS-level animation blending (SLERP)</li>
+            <li>Dear ImGui interactive debug panel</li>
+            <li>Orbit camera + all playback controls</li>
+            <li>Bone overlay, ground grid, diagnostics</li>
+            <li>60 FPS on both reference models</li>
           </ul>
         </div>
-        <div class="card accent2">
-          <h3>Normal Transformation</h3>
-          <p>When a non-uniform scale is present, normals cannot be transformed with the same matrix as positions. The correct transform is the <strong>inverse-transpose</strong>:</p>
-          <div style="font-family:monospace; font-size:0.78rem; color:var(--accent2); background:rgba(64,196,255,0.05); padding:8px; border-radius:4px; margin-top:8px;">
-            n' = mat3(transpose(inverse(M_skin))) × n
+        <div class="card">
+          <h3>Performance</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
+            <div class="num-box"><div class="big g">60</div><div class="small">FPS (vsync)</div></div>
+            <div class="num-box"><div class="big b">8 KB</div><div class="small">UBO/frame</div></div>
+            <div class="num-box"><div class="big o">&lt;1ms</div><div class="small">CPU anim</div></div>
+            <div class="num-box"><div class="big" style="color:var(--text);">9/10</div><div class="small">topics covered</div></div>
           </div>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent3">
-          <h3>Skinned Normal Pipeline</h3>
-          <p>The normal must be skinned with the <em>same</em> weighted bone matrices as the position, then re-normalised after the inverse-transpose. If you skip this, shading breaks when bones scale non-uniformly.</p>
-        </div>
-        <div class="card">
-          <h3>Ground Grid</h3>
-          <p>A flat line grid rendered with a custom shader. The fragment shader fades lines to zero alpha based on distance from the camera, using <code style="color:var(--accent);">smoothstep</code> — demonstrates simple procedural shading.</p>
-        </div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">10</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 11 — SYSTEM ARCHITECTURE ─── -->
-  <div class="slide" id="s11">
-    <h2>System Architecture — Data Flow</h2>
-    <div style="flex:1; display:flex; flex-direction:column; gap:10px; justify-content:center;">
-      <div class="flow-row" style="justify-content:center;">
-        <div class="flow-box g"><b>glTF File</b>.gltf + .bin</div>
-        <div class="flow-arr">→</div>
-        <div class="flow-box g"><b>GltfLoader</b>tinygltf parser</div>
-        <div class="flow-arr">→</div>
-        <div class="flow-box" style="border-color:var(--accent3); color:var(--accent3); background:rgba(255,110,64,0.07)"><b>Model</b>Mesh · Skeleton<br>Animations</div>
-      </div>
-      <div style="display:flex; justify-content:center; color:var(--muted); font-size:1.3rem;">↓</div>
-      <div class="flow-row" style="justify-content:center;">
-        <div class="flow-box b"><b>Animator</b>sample TRS<br>blend clips<br>→ skin mats</div>
-        <div class="flow-arr">→</div>
-        <div class="flow-box b"><b>Renderer</b>upload UBO<br>bind VAO<br>draw calls</div>
-        <div class="flow-arr">→</div>
-        <div class="flow-box g"><b>Vertex Shader</b>GPU skinning<br>MVP transform</div>
-        <div class="flow-arr">→</div>
-        <div class="flow-box g"><b>Fragment Shader</b>texture sample<br>Blinn-Phong</div>
-      </div>
-      <div style="display:flex; justify-content:center; color:var(--muted); font-size:1.3rem;">↑</div>
-      <div class="flow-row" style="justify-content:center;">
-        <div class="flow-box" style="border-color:var(--muted)"><b>App / Main Loop</b>dt, input, title bar</div>
-        <div class="flow-arr">←</div>
-        <div class="flow-box" style="border-color:var(--muted)"><b>GLFW</b>window · events</div>
-        <div class="flow-arr">←</div>
-        <div class="flow-box" style="border-color:var(--accent3); color:var(--accent3); background:rgba(255,110,64,0.07)"><b>ImGui</b>debug panel</div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">11</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 12 — CHALLENGES ─── -->
-  <div class="slide" id="s12">
-    <h2>Challenges We Solved</h2>
-    <div style="flex:1; display:flex; flex-direction:column; gap:9px; justify-content:center;">
-      <div class="card" style="flex-direction:row; align-items:center; gap:16px; padding:12px 18px;">
-        <div style="font-size:1.3rem; flex-shrink:0;">🌀</div>
-        <div>
-          <div style="font-weight:600; font-size:0.9rem; color:var(--accent3);">Mesh "tornado" / model tiny &amp; upside-down</div>
-          <div class="small">Non-joint ancestor nodes (Z_UP, Armature) in glTF carry orientation. Fixed by DFS-accumulating transforms of non-joint nodes into a rootTransform matrix applied as uModel.</div>
-        </div>
-      </div>
-      <div class="card" style="flex-direction:row; align-items:center; gap:16px; padding:12px 18px;">
-        <div style="font-size:1.3rem; flex-shrink:0;">⌨️</div>
-        <div>
-          <div style="font-weight:600; font-size:0.9rem; color:var(--accent3);">Speed keys not working on macOS</div>
-          <div class="small">GLFW key codes differ by layout. Used glfwSetCharCallback which fires Unicode codepoints ('+'=43, '-'=45) regardless of keyboard layout.</div>
-        </div>
-      </div>
-      <div class="card" style="flex-direction:row; align-items:center; gap:16px; padding:12px 18px;">
-        <div style="font-size:1.3rem; flex-shrink:0;">🦴</div>
-        <div>
-          <div style="font-weight:600; font-size:0.9rem; color:var(--accent3);">Skeleton overlay invisible (inside mesh)</div>
-          <div class="small">Depth test culled the debug lines since they sit exactly at bone positions inside geometry. Fixed by disabling GL_DEPTH_TEST for the bone draw pass and restoring it after.</div>
-        </div>
-      </div>
-      <div class="card" style="flex-direction:row; align-items:center; gap:16px; padding:12px 18px;">
-        <div style="font-size:1.3rem; flex-shrink:0;">📦</div>
-        <div>
-          <div style="font-weight:600; font-size:0.9rem; color:var(--accent3);">layout(binding=0) compile error on macOS GL 4.1</div>
-          <div class="small">OpenGL 4.1 does not support explicit UBO binding qualifiers in GLSL. Removed from shader and used glUniformBlockBinding() at load time instead.</div>
-        </div>
-      </div>
-      <div class="card" style="flex-direction:row; align-items:center; gap:16px; padding:12px 18px;">
-        <div style="font-size:1.3rem; flex-shrink:0;">🔀</div>
-        <div>
-          <div style="font-weight:600; font-size:0.9rem; color:var(--accent3);">Animation blending caused mesh shearing</div>
-          <div class="small">Matrix-level lerp between animation poses is not rotation-correct. Solution: blend at TRS level — SLERP quaternion rotations, LERP translation and scale before building the mat4.</div>
-        </div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">12</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 13 — WHAT WE BUILT ─── -->
-  <div class="slide" id="s13">
-    <h2>What We've Built — Feature Checklist</h2>
-    <div class="col2">
-      <div>
-        <h3 style="margin-bottom:12px;">Core MVP</h3>
-        <ul class="checks" style="gap:8px;">
-          <li>glTF 2.0 loading (mesh, skeleton, animations, textures)</li>
-          <li>Vertex/fragment shaders with GPU skinning</li>
-          <li>UBO-based bone matrix upload (up to 128 bones)</li>
-          <li>Orbit camera with mouse controls</li>
-          <li>Animation playback (play/pause/reset/speed/scrub)</li>
-          <li>Clip switching with keyboard shortcuts</li>
-          <li>Bone skeleton debug overlay</li>
-          <li>Ground grid with distance fade</li>
-          <li>Multi-model switching (M key)</li>
-          <li>Bind pose validation + diagnostics (0 key)</li>
-        </ul>
-      </div>
-      <div>
-        <h3 style="margin-bottom:12px;">Week 6 Extensions</h3>
-        <ul class="checks" style="gap:8px;">
-          <li>TRS-level animation blending with SLERP</li>
-          <li>Dear ImGui debug panel</li>
-          <li>— Time scrub slider</li>
-          <li>— Speed slider</li>
-          <li>— Clip selector with blend-to</li>
-          <li>— Blend progress bar</li>
-          <li>— FPS &amp; triangle counter</li>
-          <li>Full project report (docs/report.md)</li>
-          <li>Updated README with build instructions</li>
-          <li>Tested on both Khronos reference models</li>
-        </ul>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">13</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 14 — DEMO ─── -->
-  <div class="slide demo-slide" id="s14">
-    <div style="margin-bottom:24px; font-size:3rem;">▶</div>
-    <h2 style="font-size:3rem; margin-bottom:0;">Live Demo</h2>
-    <p style="margin-top:16px; font-size:1rem; color:var(--muted);">Open <code style="color:var(--accent);">build/bin/SkeletalViewer</code></p>
-    <div style="margin-top:28px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
-      <div class="tag">Orbit camera</div>
-      <div class="tag2">Play / Pause</div>
-      <div class="tag3">Speed control</div>
-      <div class="tag">Clip switch</div>
-      <div class="tag2">Smooth blend (N)</div>
-      <div class="tag3">Bone overlay (B)</div>
-      <div class="tag">Model switch (M)</div>
-      <div class="tag2">ImGui panel</div>
-    </div>
-    <div class="slide-num">14</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 15 — PERFORMANCE ─── -->
-  <div class="slide" id="s15">
-    <h2>Performance Results</h2>
-    <div class="col3" style="flex:none; margin-bottom:20px;">
-      <div class="card accent" style="text-align:center; padding:20px 10px;">
-        <div style="font-size:2rem; font-weight:700; color:var(--accent);">60 FPS</div>
-        <div class="small" style="margin-top:4px;">vsync-capped at 1280×720<br>Apple M2 Pro</div>
-      </div>
-      <div class="card accent2" style="text-align:center; padding:20px 10px;">
-        <div style="font-size:2rem; font-weight:700; color:var(--accent2);">8 KB</div>
-        <div class="small" style="margin-top:4px;">UBO upload per frame<br>128 × 64-byte mat4s</div>
-      </div>
-      <div class="card accent3" style="text-align:center; padding:20px 10px;">
-        <div style="font-size:2rem; font-weight:700; color:var(--accent3);">&lt;1 ms</div>
-        <div class="small" style="margin-top:4px;">CPU animation compute<br>19 bones, full blend</div>
-      </div>
-    </div>
-    <div class="col2">
-      <div class="card">
-        <h3>Bottleneck Analysis</h3>
-        <p>At this model size (~7 600 triangles) the GPU is entirely idle most of the frame. The limiting factor is <strong>vsync</strong>, not computation. On a production character (~100 k triangles, 200 bones) the UBO and skinning shader would still scale well.</p>
-      </div>
-      <div class="card accent2">
-        <h3>Scalability Notes</h3>
-        <ul style="gap:6px;">
-          <li>128-bone UBO limit → fine for humanoids</li>
-          <li>SSBO on GL 4.3 would allow unlimited bones</li>
-          <li>Animation blending adds one extra TRS sample pass — negligible</li>
-          <li>ImGui overhead: ~0.1 ms per frame</li>
-        </ul>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">15</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 16 — FUTURE WORK ─── -->
-  <div class="slide" id="s16">
-    <h2>What's Next — Possible Extensions</h2>
-    <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="card accent2">
-          <div class="card-icon">🌟</div>
-          <h3>Multiple Blend Layers</h3>
-          <p>Layer upper-body and lower-body animations independently (additive blending). Standard in game engines for playing a "reload" animation on the arms while the legs continue a walk cycle.</p>
-        </div>
-        <div class="card accent">
-          <div class="card-icon">☀️</div>
-          <h3>Shadow Mapping</h3>
-          <p>Render the scene from the light's perspective to produce a depth map, then test each fragment against it in the main pass. Connects directly to the <strong>Ray Tracing</strong> syllabus topic — shadow rays vs. shadow maps are the key trade-off.</p>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div class="card accent3">
-          <div class="card-icon">🦾</div>
-          <h3>Inverse Kinematics (IK)</h3>
-          <p>Procedurally compute joint angles so a hand or foot reaches a target position. Extends the bone hierarchy system with an iterative solver (CCD or FABRIK).</p>
-        </div>
-        <div class="card">
-          <div class="card-icon">🪨</div>
-          <h3>PBR Materials</h3>
-          <p>glTF 2.0 natively supports metallic-roughness PBR. Replace Blinn-Phong with a physically-based BRDF (Cook-Torrance) and add an environment cubemap for image-based lighting.</p>
-        </div>
-      </div>
-    </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">16</div>
-  </div>
-
-  <!-- ─────────────────────────────── SLIDE 17 — CONCLUSION ─── -->
-  <div class="slide" id="s17">
-    <h2>Conclusion</h2>
-    <div class="col2">
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card accent">
-          <h3>What This Project Covers</h3>
-          <p>Almost every topic on the syllabus appears as a concrete, working implementation — not just theory. The skinning pipeline connects graphics systems, transformations, shaders, buffers, and shading into a single coherent system.</p>
-        </div>
-        <div class="card accent2">
-          <h3>Key Takeaways</h3>
-          <ul style="gap:7px;">
-            <li>Bone-array order is the #1 source of skinning bugs</li>
-            <li>Blending must happen at TRS level, not matrix level</li>
-            <li>macOS GL 4.1 has real constraints to design around</li>
-            <li>A debug overlay (skeleton lines) is essential — isolates animation bugs from skinning bugs</li>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="card b">
+          <h3>Future Extensions</h3>
+          <ul style="gap:5px;">
+            <li><strong>Shadow mapping</strong> — connects to Ray Tracing topic (shadow rays vs. shadow maps)</li>
+            <li><strong>PBR materials</strong> — glTF metallic-roughness + IBL cubemap</li>
+            <li><strong>Inverse Kinematics</strong> — procedural joint solving (CCD/FABRIK)</li>
+            <li><strong>Additive blending</strong> — layer upper/lower body animations independently</li>
           </ul>
         </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="card">
-          <h3>Final Numbers</h3>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px;">
-            <div style="text-align:center;"><div style="font-size:1.6rem; font-weight:700; color:var(--accent);">~1 300</div><div class="small">lines of C++</div></div>
-            <div style="text-align:center;"><div style="font-size:1.6rem; font-weight:700; color:var(--accent2);">9</div><div class="small">syllabus topics covered</div></div>
-            <div style="text-align:center;"><div style="font-size:1.6rem; font-weight:700; color:var(--accent3);">2</div><div class="small">reference models tested</div></div>
-            <div style="text-align:center;"><div style="font-size:1.6rem; font-weight:700; color:var(--text);">60</div><div class="small">FPS sustained</div></div>
-          </div>
-        </div>
-        <div class="card accent3">
-          <h3>GitHub</h3>
-          <p style="font-family:monospace; color:var(--accent3);">github.com/yigit121/410</p>
-          <p style="margin-top:6px;">Full source, assets, report, and this presentation.</p>
+        <div class="card c">
+          <h3>Repository</h3>
+          <p style="font-family:monospace;color:var(--accent3);">github.com/yigit121/410</p>
+          <p style="margin-top:5px;">Full source, assets, report, and this presentation.</p>
         </div>
       </div>
     </div>
-    <div class="slide-footer">Skeletal Viewer</div>
-    <div class="slide-num">17</div>
+    <div class="slide-footer">Skeletal Viewer</div><div class="slide-num">10 / 10</div>
   </div>
 
-</div><!-- /deck -->
+</div>
 
-<!-- ── Navigation ─────────────────────────────────────────────────────── -->
 <div id="nav">
-  <button class="nav-btn" id="btnPrev">← Prev</button>
-  <span id="counter">1 / 17</span>
-  <button class="nav-btn" id="btnNext">Next →</button>
-  <span style="font-size:0.75rem; color:var(--muted); margin-left:8px;">or use ← → arrow keys</span>
+  <button class="btn" id="bp">← Prev</button>
+  <span id="ctr">1 / 10</span>
+  <button class="btn" id="bn">Next →</button>
+  <span style="font-size:0.73rem;color:var(--muted);margin-left:6px;">← → arrow keys</span>
 </div>
 
 <script>
-  const slides  = document.querySelectorAll('.slide');
-  const counter = document.getElementById('counter');
-  let current   = 0;
-  const total   = slides.length;
+  const slides = document.querySelectorAll('.slide');
+  const ctr    = document.getElementById('ctr');
+  let cur = 0;
 
   function go(n) {
-    slides[current].classList.remove('active');
-    current = (n + total) % total;
-    slides[current].classList.add('active');
-    counter.textContent = (current + 1) + ' / ' + total;
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    ctr.textContent = (cur + 1) + ' / 10';
   }
 
-  document.getElementById('btnPrev').addEventListener('click', () => go(current - 1));
-  document.getElementById('btnNext').addEventListener('click', () => go(current + 1));
+  document.getElementById('bp').onclick = () => go(cur - 1);
+  document.getElementById('bn').onclick = () => go(cur + 1);
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown'  || e.key === ' ') { e.preventDefault(); go(current + 1); }
-    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                      { e.preventDefault(); go(current - 1); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown'  || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                      { e.preventDefault(); go(cur - 1); }
   });
 </script>
 </body>
