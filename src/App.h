@@ -4,6 +4,10 @@
 #include "Model.h"
 #include "Animator.h"
 #include "Renderer.h"
+#include "ShadowMap.h"
+#include "Environment.h"
+#include "AnimStateMachine.h"
+#include "RenderSettings.h"
 #include "ui/DebugUI.h"
 #include <string>
 #include <memory>
@@ -26,9 +30,20 @@ private:
     std::unique_ptr<Shader>   skinnedShader_;
     std::unique_ptr<Shader>   boneDebugShader_;
     std::unique_ptr<Shader>   gridShader_;
+    std::unique_ptr<Shader>   depthShader_;
+    std::unique_ptr<Shader>   groundShader_;
+    std::unique_ptr<Shader>   skyboxShader_;
     std::unique_ptr<Renderer> renderer_;
     std::unique_ptr<Animator> animator_;
     Model model_;
+
+    // Shadow + IBL
+    ShadowMap      shadowMap_;
+    Environment    environment_;
+    RenderSettings settings_;
+
+    // Keyboard-triggered Walk/Run/Jump state machine
+    AnimStateMachine stateMachine_;
 
     // ImGui debug panel
     DebugUI ui_;
@@ -49,6 +64,7 @@ private:
     int cachedFps_ = 0;
 
     void loadModel(const std::string& path);
+    void frameCameraToModel();
     void processInput(float dt);
     void render();
 

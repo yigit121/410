@@ -2,6 +2,8 @@
 
 out vec4 fragColor;
 
+uniform vec3 uColor;
+
 void main() {
-    fragColor = vec4(0.0, 1.0, 0.2, 1.0); // bright green lines
+    fragColor = vec4(uColor, 1.0);
 }

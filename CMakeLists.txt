@@ -54,7 +54,10 @@ set(SOURCES
     src/Shader.cpp
     src/GltfLoader.cpp
     src/Animator.cpp
+    src/AnimStateMachine.cpp
     src/Renderer.cpp
+    src/ShadowMap.cpp
+    src/Environment.cpp
     src/ui/DebugUI.cpp
 )
 

@@ -43,6 +43,19 @@ public:
     // Clip name helper — empty string if idx out of range
     std::string clipName(int idx) const;
 
+    // ── Inverse Kinematics (two-bone analytic) ────────────────────────────────
+    // Chain is end-effector + its two ancestors:  root -> mid -> end.
+    int  boneCount()                 const { return (int)model_->skeleton.size(); }
+    std::string boneName(int idx)    const;
+    void setIKEnabled(bool v)              { ikEnabled_ = v; }
+    bool isIKEnabled()               const { return ikEnabled_; }
+    void setIKEndEffector(int boneIdx);    // derives mid = parent(end), root = parent(mid)
+    int  ikEndEffector()             const { return ikEnd_; }
+    void setIKTarget(const glm::vec3& w)   { ikTarget_ = w; }
+    glm::vec3 ikTarget()             const { return ikTarget_; }
+    bool ikValid()                   const; // true when end/mid/root form a 3-bone chain
+    glm::vec3 effectorWorldPos()     const; // current world pos of the end bone (to seed the target)
+
 private:
     const Model* model_;
     int   clipIdx_  = 0;
@@ -53,6 +66,13 @@ private:
     std::vector<glm::mat4> local_;
     std::vector<glm::mat4> global_;
     std::vector<glm::mat4> skinning_;
+
+    // IK state
+    bool      ikEnabled_ = false;
+    int       ikEnd_     = -1;            // selected end-effector bone
+    glm::vec3 ikTarget_{0.0f};            // world-space target
+    glm::vec3 ikPoleHint_{0.0f, 0.0f, 1.0f};
+    void solveTwoBoneIK();               // modifies local_[root], local_[mid]
 
     // Blending state
     bool  blending_        = false;

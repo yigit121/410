@@ -1,9 +1,11 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "../RenderSettings.h"
 
 struct GLFWwindow;
 class Animator;
+class AnimStateMachine;
 
 // ImGui debug panel — encapsulates all Dear ImGui lifecycle calls so App stays clean.
 class DebugUI {
@@ -23,7 +25,9 @@ public:
               int&        modelIndex,
               const std::vector<std::string>& modelPaths,
               int         fps,
-              int         triCount);
+              int         triCount,
+              RenderSettings& settings,
+              AnimStateMachine& stateMachine);
 
     // Returns true when ImGui wants to capture keyboard/mouse input
     // (caller should suppress its own input processing)

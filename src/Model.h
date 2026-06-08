@@ -41,11 +41,26 @@ struct Animation {
     std::vector<Channel> channels;   // one per animated bone
 };
 
+// ── PBR material (glTF metallic-roughness) ─────────────────────────────────────
+struct Material {
+    glm::vec4 baseColorFactor{1.0f, 1.0f, 1.0f, 1.0f};
+    float     metallicFactor  = 1.0f;
+    float     roughnessFactor = 1.0f;
+    glm::vec3 emissiveFactor{0.0f, 0.0f, 0.0f};
+
+    // GL texture IDs (-1 = absent). Color textures are sRGB, data textures linear.
+    int baseColorTex         = -1; // sRGB
+    int metallicRoughnessTex = -1; // linear: G=roughness, B=metallic
+    int normalTex            = -1; // linear
+    int emissiveTex          = -1; // sRGB
+    int occlusionTex         = -1; // linear: R=ambient occlusion
+};
+
 // ── Mesh primitive ─────────────────────────────────────────────────────────────
 struct Mesh {
     std::vector<Vertex>       vertices;
     std::vector<unsigned int> indices;
-    int                       albedoTexture = -1; // GL texture ID, -1 = none
+    Material                  material;
 };
 
 // ── Top-level model ─────────────────────────────────────────────────────────────
@@ -54,4 +69,9 @@ struct Model {
     std::vector<Bone>      skeleton;   // indexed in joint order
     std::vector<Animation> animations;
     glm::mat4              rootTransform{1.0f}; // accumulated scene-node transforms above the skin
+
+    // Local-space (pre-skin) bounding box over all mesh vertices — used to fit the
+    // shadow light frustum. Transform by rootTransform to get world-space bounds.
+    glm::vec3 aabbMin{0.0f};
+    glm::vec3 aabbMax{0.0f};
 };

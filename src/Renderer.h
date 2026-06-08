@@ -7,7 +7,7 @@
 struct MeshGPU {
     unsigned int vao = 0, vbo = 0, ibo = 0;
     int indexCount = 0;
-    int albedo     = -1; // GL texture ID
+    Material material;
 };
 
 class Renderer {
@@ -18,16 +18,25 @@ public:
     void uploadModel(const Model& model);
     void uploadSkinningMatrices(const std::vector<glm::mat4>& matrices);
 
-    // Draw the skinned mesh
+    // Draw the skinned mesh (binds material textures)
     void drawSkinned(const Shader& shader);
+
+    // Draw all skinned mesh geometry only (no textures) — for the shadow depth pass
+    void drawDepth(const Shader& shader);
 
     // Draw bone debug lines
     void drawBones(const Shader& shader,
                    const std::vector<glm::mat4>& global,
                    const std::vector<Bone>& skeleton);
 
+    // Draw a small 3-axis cross marker (e.g. an IK target) at a model-space point
+    void drawMarker(const Shader& shader, const glm::vec3& center, float size);
+
     // Draw flat ground grid centred at origin
     void drawGrid(const Shader& shader, float radius = 5.0f, int steps = 20);
+
+    // Draw a filled ground plane (receives shadows / PBR-shaded) at height y
+    void drawGroundPlane(const Shader& shader, float y, float halfSize);
 
     // Returns total triangle count across all uploaded meshes
     int totalTriangles() const {
@@ -42,7 +51,9 @@ private:
     unsigned int boneVao_ = 0, boneVbo_ = 0;
     unsigned int gridVao_ = 0, gridVbo_ = 0;
     int          gridVertCount_ = 0;
+    unsigned int groundVao_ = 0, groundVbo_ = 0;
 
     void initUBO();
     void initGrid(float radius, int steps);
+    void initGroundPlane();
 };

@@ -11,11 +11,13 @@ Renderer::~Renderer() {
         glDeleteBuffers(1, &m.vbo);
         glDeleteBuffers(1, &m.ibo);
     }
-    if (ubo_)     glDeleteBuffers(1, &ubo_);
-    if (boneVao_) glDeleteVertexArrays(1, &boneVao_);
-    if (boneVbo_) glDeleteBuffers(1, &boneVbo_);
-    if (gridVao_) glDeleteVertexArrays(1, &gridVao_);
-    if (gridVbo_) glDeleteBuffers(1, &gridVbo_);
+    if (ubo_)       glDeleteBuffers(1, &ubo_);
+    if (boneVao_)   glDeleteVertexArrays(1, &boneVao_);
+    if (boneVbo_)   glDeleteBuffers(1, &boneVbo_);
+    if (gridVao_)   glDeleteVertexArrays(1, &gridVao_);
+    if (gridVbo_)   glDeleteBuffers(1, &gridVbo_);
+    if (groundVao_) glDeleteVertexArrays(1, &groundVao_);
+    if (groundVbo_) glDeleteBuffers(1, &groundVbo_);
 }
 
 void Renderer::initUBO() {
@@ -39,7 +41,7 @@ void Renderer::uploadModel(const Model& model) {
     for (const Mesh& src : model.meshes) {
         MeshGPU gpu;
         gpu.indexCount = (int)src.indices.size();
-        gpu.albedo     = src.albedoTexture;
+        gpu.material   = src.material;
 
         glGenVertexArrays(1, &gpu.vao);
         glGenBuffers(1, &gpu.vbo);
@@ -136,6 +138,49 @@ void Renderer::drawGrid(const Shader& shader, float radius, int steps) {
     glDisable(GL_BLEND);
 }
 
+void Renderer::initGroundPlane() {
+    // Unit quad in the XZ plane centred at origin: pos(3) + normal(3) + uv(2).
+    // Scaled/positioned per-draw via uModel. UVs span 0..8 for a tiled look.
+    const float Q = 0.5f;
+    float verts[] = {
+        // pos                 normal        uv
+        -Q, 0.0f, -Q,   0,1,0,   0.0f, 0.0f,
+         Q, 0.0f, -Q,   0,1,0,   8.0f, 0.0f,
+         Q, 0.0f,  Q,   0,1,0,   8.0f, 8.0f,
+        -Q, 0.0f, -Q,   0,1,0,   0.0f, 0.0f,
+         Q, 0.0f,  Q,   0,1,0,   8.0f, 8.0f,
+        -Q, 0.0f,  Q,   0,1,0,   0.0f, 8.0f,
+    };
+    glGenVertexArrays(1, &groundVao_);
+    glGenBuffers(1, &groundVbo_);
+    glBindVertexArray(groundVao_);
+    glBindBuffer(GL_ARRAY_BUFFER, groundVbo_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glBindVertexArray(0);
+}
+
+void Renderer::drawGroundPlane(const Shader& shader, float y, float halfSize) {
+    if (!groundVao_) initGroundPlane();
+    glm::mat4 model = glm::mat4(1.0f);
+    model[3] = glm::vec4(0.0f, y, 0.0f, 1.0f);   // translate to y
+    model[0][0] = halfSize * 2.0f;               // scale X
+    model[2][2] = halfSize * 2.0f;               // scale Z
+    shader.use();
+    shader.setMat4("uModel", model);
+    // Two-sided: visible whether the camera is above or below the plane.
+    glDisable(GL_CULL_FACE);
+    glBindVertexArray(groundVao_);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glEnable(GL_CULL_FACE);
+}
+
 void Renderer::uploadSkinningMatrices(const std::vector<glm::mat4>& matrices) {
     if (!ubo_) return;
     int count = std::min((int)matrices.size(), MAX_BONES);
@@ -147,11 +192,51 @@ void Renderer::uploadSkinningMatrices(const std::vector<glm::mat4>& matrices) {
 void Renderer::drawSkinned(const Shader& shader) {
     shader.use();
     for (const MeshGPU& m : meshes_) {
-        if (m.albedo >= 0) {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, m.albedo);
-            shader.setInt("uAlbedo", 0);
-        }
+        const Material& mat = m.material;
+
+        // Unit 0: base color (sRGB)
+        bool hasAlbedo = mat.baseColorTex >= 0;
+        glActiveTexture(GL_TEXTURE0);
+        if (hasAlbedo) glBindTexture(GL_TEXTURE_2D, mat.baseColorTex);
+        shader.setInt ("uAlbedo",    0);
+        shader.setInt ("uHasAlbedo", hasAlbedo ? 1 : 0);
+        shader.setVec3("uBaseColor", glm::vec3(mat.baseColorFactor));
+
+        // Unit 2: metallic-roughness (linear)
+        bool hasMR = mat.metallicRoughnessTex >= 0;
+        glActiveTexture(GL_TEXTURE2);
+        if (hasMR) glBindTexture(GL_TEXTURE_2D, mat.metallicRoughnessTex);
+        shader.setInt  ("uMetallicRoughness",    2);
+        shader.setInt  ("uHasMetallicRoughness", hasMR ? 1 : 0);
+        shader.setFloat("uMetallicFactor",       mat.metallicFactor);
+        shader.setFloat("uRoughnessFactor",      mat.roughnessFactor);
+
+        // Unit 3: emissive (sRGB)
+        bool hasEmissive = mat.emissiveTex >= 0;
+        glActiveTexture(GL_TEXTURE3);
+        if (hasEmissive) glBindTexture(GL_TEXTURE_2D, mat.emissiveTex);
+        shader.setInt ("uEmissive",       3);
+        shader.setInt ("uHasEmissive",    hasEmissive ? 1 : 0);
+        shader.setVec3("uEmissiveFactor", mat.emissiveFactor);
+
+        // Unit 4: ambient occlusion (linear)
+        bool hasOcclusion = mat.occlusionTex >= 0;
+        glActiveTexture(GL_TEXTURE4);
+        if (hasOcclusion) glBindTexture(GL_TEXTURE_2D, mat.occlusionTex);
+        shader.setInt("uOcclusion",    4);
+        shader.setInt("uHasOcclusion", hasOcclusion ? 1 : 0);
+
+        glActiveTexture(GL_TEXTURE0);  // restore default active unit
+
+        glBindVertexArray(m.vao);
+        glDrawElements(GL_TRIANGLES, m.indexCount, GL_UNSIGNED_INT, nullptr);
+    }
+    glBindVertexArray(0);
+}
+
+void Renderer::drawDepth(const Shader& shader) {
+    shader.use();
+    for (const MeshGPU& m : meshes_) {
         glBindVertexArray(m.vao);
         glDrawElements(GL_TRIANGLES, m.indexCount, GL_UNSIGNED_INT, nullptr);
     }
@@ -183,4 +268,23 @@ void Renderer::drawBones(const Shader& shader,
     glDrawArrays(GL_LINES, 0, (int)lines.size());
     glBindVertexArray(0);
     glEnable(GL_DEPTH_TEST);  // restore
+}
+
+void Renderer::drawMarker(const Shader& shader, const glm::vec3& c, float s) {
+    // Three axis-aligned segments forming a small cross at c.
+    const glm::vec3 verts[6] = {
+        c - glm::vec3(s,0,0), c + glm::vec3(s,0,0),
+        c - glm::vec3(0,s,0), c + glm::vec3(0,s,0),
+        c - glm::vec3(0,0,s), c + glm::vec3(0,0,s),
+    };
+    glBindBuffer(GL_ARRAY_BUFFER, boneVbo_);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+    shader.use();
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(boneVao_);
+    glLineWidth(2.0f);
+    glDrawArrays(GL_LINES, 0, 6);
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
 }

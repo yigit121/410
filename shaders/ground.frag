@@ -4,11 +4,8 @@ in vec3 vNormal;
 in vec2 vUV;
 in vec3 vWorldPos;
 
-uniform sampler2D uAlbedo;
-uniform int       uHasAlbedo;   // 1 if a base-color texture is bound
-uniform vec3      uBaseColor;   // baseColorFactor.rgb (multiplies / replaces albedo)
-uniform vec3      uLightDir;    // surface -> light, normalized
-uniform vec3      uCamPos;
+uniform vec3 uLightDir;  // surface -> light, normalized
+uniform vec3 uCamPos;
 
 // Shadow mapping
 uniform sampler2D uShadowMap;
@@ -23,7 +20,7 @@ float shadowVisibility(vec3 N, vec3 L) {
     vec4 lp = uLightVP * vec4(vWorldPos, 1.0);
     vec3 proj = lp.xyz / lp.w;
     proj = proj * 0.5 + 0.5;                 // NDC -> [0,1]
-    if (proj.z > 1.0) return 1.0;
+    if (proj.z > 1.0) return 1.0;            // beyond far plane: lit
 
     float bias = max(uShadowBias * (1.0 - dot(N, L)), uShadowBias * 0.2);
     float current = proj.z;
@@ -39,23 +36,17 @@ float shadowVisibility(vec3 N, vec3 L) {
 }
 
 void main() {
-    vec3 albedo = uBaseColor;
-    if (uHasAlbedo == 1) {
-        vec4 tex = texture(uAlbedo, vUV);
-        albedo = tex.rgb * uBaseColor;
-    }
+    // Subtle checkerboard so the shadow reads clearly on the plane.
+    vec2 c = floor(vUV * 2.0);
+    float checker = mod(c.x + c.y, 2.0);
+    vec3 albedo = mix(vec3(0.28, 0.28, 0.32), vec3(0.20, 0.20, 0.24), checker);
 
     vec3 N = normalize(vNormal);
     vec3 L = normalize(uLightDir);
-    vec3 V = normalize(uCamPos - vWorldPos);
-    vec3 H = normalize(L + V);
-
     float diff = max(dot(N, L), 0.0);
-    float spec = pow(max(dot(N, H), 0.0), 32.0);
-    float ambient = 0.15;
 
     float vis = (uShadowEnabled == 1) ? shadowVisibility(N, L) : 1.0;
-
-    vec3 color = albedo * (ambient + 0.8 * diff * vis) + vec3(0.2) * spec * vis;
+    float ambient = 0.25;
+    vec3 color = albedo * (ambient + 0.75 * diff * vis);
     fragColor = vec4(color, 1.0);
 }

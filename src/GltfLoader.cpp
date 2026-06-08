@@ -34,8 +34,10 @@ static std::vector<T> readAccessor(const tinygltf::Model& g, int accIdx) {
     return out;
 }
 
-// Upload an image to a GL texture
-static int uploadTexture(const tinygltf::Model& g, int texIdx) {
+// Upload an image to a GL texture.
+// srgb=true for color textures (baseColor/emissive); false for data maps
+// (metallicRoughness/normal/occlusion) which must stay in linear space.
+static int uploadTexture(const tinygltf::Model& g, int texIdx, bool srgb) {
     if (texIdx < 0) return -1;
     const tinygltf::Texture& t = g.textures[texIdx];
     const tinygltf::Image&   img = g.images[t.source];
@@ -44,7 +46,10 @@ static int uploadTexture(const tinygltf::Model& g, int texIdx) {
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
     GLenum fmt = img.component == 4 ? GL_RGBA : GL_RGB;
-    glTexImage2D(GL_TEXTURE_2D, 0, fmt,
+    GLint  internalFmt;
+    if (srgb) internalFmt = img.component == 4 ? GL_SRGB8_ALPHA8 : GL_SRGB8;
+    else      internalFmt = (GLint)fmt;
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFmt,
                  img.width, img.height, 0, fmt, GL_UNSIGNED_BYTE, img.image.data());
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -244,13 +249,51 @@ Model GltfLoader::load(const std::string& path) {
                         auto raw = readAccessor<unsigned char>(g, prim.indices);
                         mesh.indices.assign(raw.begin(), raw.end());
                     }
+                } else {
+                    // Non-indexed primitive (e.g. Fox): synthesize a sequential
+                    // index buffer so the rest of the pipeline (glDrawElements) works.
+                    mesh.indices.resize(mesh.vertices.size());
+                    for (unsigned int i = 0; i < (unsigned int)mesh.vertices.size(); i++)
+                        mesh.indices[i] = i;
                 }
 
-                // Texture
+                // Generate smooth normals when the asset has none (e.g. Fox).
+                if (!prim.attributes.count("NORMAL")) {
+                    for (Vertex& v : mesh.vertices) v.nrm = glm::vec3(0.0f);
+                    for (size_t i = 0; i + 2 < mesh.indices.size(); i += 3) {
+                        unsigned a = mesh.indices[i], b = mesh.indices[i+1], c = mesh.indices[i+2];
+                        glm::vec3 fn = glm::cross(mesh.vertices[b].pos - mesh.vertices[a].pos,
+                                                  mesh.vertices[c].pos - mesh.vertices[a].pos);
+                        mesh.vertices[a].nrm += fn;
+                        mesh.vertices[b].nrm += fn;
+                        mesh.vertices[c].nrm += fn;
+                    }
+                    for (Vertex& v : mesh.vertices)
+                        v.nrm = (glm::length(v.nrm) > 1e-8f) ? glm::normalize(v.nrm)
+                                                             : glm::vec3(0.0f, 1.0f, 0.0f);
+                }
+
+                // Material (glTF metallic-roughness)
                 if (prim.material >= 0) {
                     const auto& mat = g.materials[prim.material];
-                    int texIdx = mat.pbrMetallicRoughness.baseColorTexture.index;
-                    mesh.albedoTexture = uploadTexture(g, texIdx);
+                    const auto& pbr = mat.pbrMetallicRoughness;
+
+                    Material& M = mesh.material;
+                    M.baseColorFactor = glm::vec4(
+                        (float)pbr.baseColorFactor[0], (float)pbr.baseColorFactor[1],
+                        (float)pbr.baseColorFactor[2], (float)pbr.baseColorFactor[3]);
+                    M.metallicFactor  = (float)pbr.metallicFactor;
+                    M.roughnessFactor = (float)pbr.roughnessFactor;
+                    if (mat.emissiveFactor.size() == 3)
+                        M.emissiveFactor = glm::vec3((float)mat.emissiveFactor[0],
+                                                     (float)mat.emissiveFactor[1],
+                                                     (float)mat.emissiveFactor[2]);
+
+                    M.baseColorTex         = uploadTexture(g, pbr.baseColorTexture.index,         /*srgb=*/true);
+                    M.metallicRoughnessTex = uploadTexture(g, pbr.metallicRoughnessTexture.index, /*srgb=*/false);
+                    M.normalTex            = uploadTexture(g, mat.normalTexture.index,             /*srgb=*/false);
+                    M.emissiveTex          = uploadTexture(g, mat.emissiveTexture.index,           /*srgb=*/true);
+                    M.occlusionTex         = uploadTexture(g, mat.occlusionTexture.index,          /*srgb=*/false);
                 }
 
                 model.meshes.push_back(std::move(mesh));
@@ -318,6 +361,19 @@ Model GltfLoader::load(const std::string& path) {
                 model.meshes.push_back(std::move(mesh));
             }
         }
+    }
+
+    // ── Bounding box (local/bind-pose space) ────────────────────────────────────
+    {
+        glm::vec3 mn( 1e9f), mx(-1e9f);
+        bool any = false;
+        for (const Mesh& m : model.meshes)
+            for (const Vertex& v : m.vertices) {
+                mn = glm::min(mn, v.pos);
+                mx = glm::max(mx, v.pos);
+                any = true;
+            }
+        if (any) { model.aabbMin = mn; model.aabbMax = mx; }
     }
 
     // ── Diagnostic output ──────────────────────────────────────────────────────

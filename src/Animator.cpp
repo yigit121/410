@@ -80,6 +80,10 @@ void Animator::update(float dt) {
 
     computeLocal();
     computeGlobal();
+    if (ikEnabled_ && ikValid()) {
+        solveTwoBoneIK();   // adjusts local_[root], local_[mid]
+        computeGlobal();    // re-propagate FK so descendants follow
+    }
     computeSkinning();
 }
 
@@ -147,9 +151,12 @@ void Animator::computeLocal() {
             int i = ch.boneIdx;
             if (i < 0 || i >= n) continue;
 
-            glm::vec3 T = ch.T.empty() ? glm::vec3(0)       : sampleVec3(ch.times, ch.T, time_);
-            glm::quat R = ch.R.empty() ? glm::quat(1,0,0,0) : sampleQuat(ch.times, ch.R, time_);
-            glm::vec3 S = ch.S.empty() ? glm::vec3(1)       : sampleVec3(ch.times, ch.S, time_);
+            // Missing tracks fall back to the bone's BIND value (not a neutral
+            // default), so e.g. rotation-only channels keep their bind offset.
+            const Bone& bone = model_->skeleton[i];
+            glm::vec3 T = ch.T.empty() ? bone.bindT : sampleVec3(ch.times, ch.T, time_);
+            glm::quat R = ch.R.empty() ? bone.bindR : sampleQuat(ch.times, ch.R, time_);
+            glm::vec3 S = ch.S.empty() ? bone.bindS : sampleVec3(ch.times, ch.S, time_);
 
             local_[i] = glm::translate(glm::mat4(1.0f), T)
                       * glm::mat4_cast(R)
@@ -310,4 +317,106 @@ void Animator::printClipDiagnostic() const {
                       << "," << rootCh->R[k].z << ")";
         std::cout << "\n";
     }
+}
+
+// ── Inverse Kinematics (two-bone analytic solver) ─────────────────────────────
+
+std::string Animator::boneName(int idx) const {
+    if (idx < 0 || idx >= boneCount()) return "";
+    const std::string& n = model_->skeleton[idx].name;
+    return n.empty() ? ("bone_" + std::to_string(idx)) : n;
+}
+
+void Animator::setIKEndEffector(int boneIdx) {
+    if (boneIdx < 0 || boneIdx >= boneCount()) { ikEnd_ = -1; return; }
+    ikEnd_ = boneIdx;
+}
+
+// Valid only when the effector has two ancestors (root -> mid -> end).
+bool Animator::ikValid() const {
+    if (ikEnd_ < 0 || ikEnd_ >= boneCount()) return false;
+    int mid = model_->skeleton[ikEnd_].parent;
+    if (mid < 0) return false;
+    int root = model_->skeleton[mid].parent;
+    return root >= 0;
+}
+
+glm::vec3 Animator::effectorWorldPos() const {
+    if (ikEnd_ < 0 || ikEnd_ >= (int)global_.size()) return glm::vec3(0.0f);
+    return glm::vec3(global_[ikEnd_][3]);
+}
+
+// Reorthonormalises a global rotation into a local rotation for one bone and
+// stores it back into local_, preserving that bone's local translation & scale.
+static void applyWorldDeltaToLocal(std::vector<glm::mat4>& local,
+                                   const std::vector<glm::mat4>& global,
+                                   const std::vector<Bone>& skel,
+                                   int bone, const glm::quat& worldDelta) {
+    int p = skel[bone].parent;
+    glm::quat parentWorldRot = (p < 0) ? glm::quat(1,0,0,0)
+                                       : glm::quat_cast(glm::mat3(global[p]));
+    // current local rotation
+    glm::quat localRot = glm::quat_cast(glm::mat3(local[bone]));
+    // Express the world-space delta in the parent's frame, then pre-multiply.
+    glm::quat newLocalRot = glm::normalize(
+        glm::inverse(parentWorldRot) * worldDelta * parentWorldRot * localRot);
+
+    // Rebuild local matrix from existing T & S plus the new rotation.
+    glm::vec3 T = glm::vec3(local[bone][3]);
+    glm::vec3 S(glm::length(glm::vec3(local[bone][0])),
+                glm::length(glm::vec3(local[bone][1])),
+                glm::length(glm::vec3(local[bone][2])));
+    local[bone] = glm::translate(glm::mat4(1.0f), T)
+                * glm::mat4_cast(newLocalRot)
+                * glm::scale(glm::mat4(1.0f), S);
+}
+
+void Animator::solveTwoBoneIK() {
+    int end  = ikEnd_;
+    int mid  = model_->skeleton[end].parent;
+    int root = model_->skeleton[mid].parent;
+
+    glm::vec3 a = glm::vec3(global_[root][3]);   // root joint (hip / shoulder)
+    glm::vec3 b = glm::vec3(global_[mid][3]);    // mid joint  (knee / elbow)
+    glm::vec3 c = glm::vec3(global_[end][3]);    // end joint  (foot / hand)
+    glm::vec3 t = ikTarget_;
+
+    const float eps = 1e-5f;
+    float lab = glm::length(b - a);
+    float lcb = glm::length(c - b);
+    if (lab < eps || lcb < eps) return;
+
+    glm::vec3 toTarget = t - a;
+    float lat = glm::length(toTarget);
+    lat = glm::clamp(lat, std::abs(lab - lcb) + eps, lab + lcb - eps);
+
+    // Current interior angles at root (a) and mid (b).
+    auto angle = [](float adj1, float adj2, float opp) {
+        float v = (adj1*adj1 + adj2*adj2 - opp*opp) / (2.0f*adj1*adj2);
+        return std::acos(glm::clamp(v, -1.0f, 1.0f));
+    };
+    float ac_ab_0 = angle(lab, glm::length(c - a), lcb); // at root, current
+    float ba_bc_0 = angle(lab, lcb, glm::length(c - a)); // at mid,  current
+    float ac_ab_1 = angle(lab, lat, lcb);                // at root, desired
+    float ba_bc_1 = angle(lab, lcb, lat);                // at mid,  desired
+
+    // Bend axis: normal of the (a,b,c) triangle; fall back to pole hint when straight.
+    glm::vec3 axis = glm::cross(c - a, b - a);
+    if (glm::length(axis) < eps)
+        axis = glm::cross(c - a, ikPoleHint_);
+    if (glm::length(axis) < eps)
+        axis = glm::vec3(0.0f, 0.0f, 1.0f);
+    axis = glm::normalize(axis);
+
+    // 1) Hinge the mid joint to set the elbow/knee bend.
+    glm::quat midDelta = glm::angleAxis(ba_bc_1 - ba_bc_0, axis);
+    applyWorldDeltaToLocal(local_, global_, model_->skeleton, mid, midDelta);
+
+    // 2) Rotate the root so the chain swings into the bend, then aim at the target.
+    glm::quat rootBend = glm::angleAxis(ac_ab_1 - ac_ab_0, axis);
+    glm::vec3 dirCur = glm::normalize(c - a);
+    glm::vec3 dirTgt = glm::normalize(toTarget);
+    glm::quat rootAim = glm::rotation(dirCur, dirTgt);   // glm::gtx::quaternion
+    applyWorldDeltaToLocal(local_, global_, model_->skeleton, root,
+                           glm::normalize(rootAim * rootBend));
 }
